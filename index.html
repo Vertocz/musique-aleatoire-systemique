@@ -73,7 +73,7 @@ nav a{padding:12px 14px;font-weight:500;text-decoration:none}
 .tempo output{font-family:var(--mono);min-width:3ch}
 input[type=range]{accent-color:var(--deep)}
 input[type=checkbox]{accent-color:var(--deep);width:16px;height:16px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
 @media (max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.grid{grid-template-columns:1fr}}
 .measure{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -125,11 +125,34 @@ input[type=checkbox]{accent-color:var(--deep);width:16px;height:16px}
 
 footer{min-height:72px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;font-size:14px;border-top:2px solid var(--ink)}
 
+/* Vues */
+main{display:flex;flex-direction:column;gap:24px}
+#composition .row{align-items:flex-start}
+.dialog ol.r li{display:list-item}
+.landing .hero{min-height:460px}
+.landing .rules-card{flex:5 1 360px;min-height:460px}
+.compose-cta{display:flex;justify-content:center;padding:8px 0}
+.compose-cta .btn{min-height:64px;padding:0 48px;font-size:22px;font-family:var(--display);font-weight:var(--display-w)}
+.piece-card .piece-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.piece-card ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+@media (max-width:700px){.piece-card ul{grid-template-columns:1fr}}
+.piece-card li{display:flex;align-items:center;gap:14px}
+.piece-card li .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.piece-card li small{font-size:13px;opacity:.8}
+.carnet-card{flex:4 1 340px}
+.carnet-card .section{padding-top:14px;border-top:2px solid var(--line)}
+.carnet-card .section:first-of-type{border-top:0;padding-top:0}
+.section-head .tools{display:flex;gap:6px}
+.btn-q{min-width:34px;justify-content:center;padding:0}
+.actions-card{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;padding:20px 32px}
 /* Modale */
 .modal{position:fixed;inset:0;z-index:10;padding:24px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
 .dialog{width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:18px;background:var(--surface);color:var(--ink);border-radius:var(--radius);box-shadow:0 24px 60px rgba(0,0,0,.25)}
 .dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .dialog h2{font-size:30px}
+.dialog .body{display:flex;flex-direction:column;gap:14px}
+.dialog .body p{margin:0}
+.dialog .body ol.r{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
 .close{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;padding:0;background:var(--bg);border-radius:999px;cursor:pointer}
 .dialog ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
 .dialog li{display:flex;align-items:center;gap:16px}
@@ -144,82 +167,84 @@ footer{min-height:72px;display:flex;flex-wrap:wrap;align-items:center;justify-co
 <body>
 <div class="wrap">
 <header>
-  <a class="brand" href="#accueil"><span id="logoDie"></span><span>Musique aléatoire<br>systémique</span></a>
+  <a class="brand" href="#accueil" id="home"><span id="logoDie"></span><span>Musique aléatoire<br>systémique</span></a>
   <nav aria-label="Navigation principale">
-    <a href="#piece">La pièce</a>
-    <a href="#grille">La grille</a>
-    <a href="#carnet">Les tirages</a>
-    <a href="#regles">Les règles</a>
     <button class="btn btn-a3" id="openDesign" type="button">D’où vient mon design ?</button>
   </nav>
 </header>
 
-<div class="row" id="accueil">
-  <section class="card hero">
-    <div class="deco" id="decoBig" aria-hidden="true" style="right:36px;top:28px;transform:rotate(10deg)"></div>
-    <div class="deco" id="decoSmall" aria-hidden="true" style="right:44px;top:158px;transform:rotate(-14deg)"></div>
-    <p class="eyebrow">Composition par tirages de dés</p>
-    <div>
-      <h1>Composer avec les dés.</h1>
-      <p class="lead">Métrique, tonalité, degrés, grille, mélodie et batterie : chaque étape se tire aux dés et limite les choix de la suivante.</p>
+<main id="landing" class="landing">
+  <div class="row">
+    <section class="card hero">
+      <div class="deco" id="decoBig" aria-hidden="true" style="right:36px;top:28px;transform:rotate(10deg)"></div>
+      <div class="deco" id="decoSmall" aria-hidden="true" style="right:44px;top:158px;transform:rotate(-14deg)"></div>
+      <p class="eyebrow">Composition par tirages de dés</p>
+      <div>
+        <h1>Composer avec les dés.</h1>
+        <p class="lead">Métrique, tonalité, degrés, grille, mélodie et batterie : chaque étape se tire aux dés et limite les choix de la suivante.</p>
+      </div>
+    </section>
+    <section class="card rules-card" aria-labelledby="regles-titre">
+      <h2 id="regles-titre">Les règles</h2>
+      <ol>
+        <li><span>1</span><span><strong>Métrique.</strong> 5 + D10 croches par mesure, D6 mesures, D6 binaire ou ternaire.</span></li>
+        <li><span>2</span><span><strong>Tonalité.</strong> Trois D8 : bémols ou dièses, combien, mineur ou majeur.</span></li>
+        <li><span>3</span><span><strong>Degrés.</strong> D6 degrés, un D8 pour chacun, un D20 pour leur fréquence.</span></li>
+        <li><span>4</span><span><strong>Grille.</strong> Un accord par demi-mesure, tiré selon les poids. En boucle.</span></li>
+        <li><span>5</span><span><strong>Mélodie.</strong> Ambitus, rythme et hauteurs aux dés, appuyés sur les accords.</span></li>
+        <li><span>6</span><span><strong>Batterie.</strong> Elle soutient la métrique, les temps forts et les changements d’accords.</span></li>
+      </ol>
+    </section>
+  </div>
+  <div class="compose-cta"><button class="btn btn-ink" id="compose" type="button">Composer</button></div>
+</main>
+
+<main id="composition" hidden>
+  <section class="card piece-card" aria-labelledby="piece-titre">
+    <div class="piece-head">
+      <h2 id="piece-titre">La pièce tirée</h2>
+      <div class="player">
+        <button class="btn btn-ink" id="rollAll" type="button">Tout relancer</button>
+        <button class="btn btn-line" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-ink btn-big" id="rollAll" type="button">Tout relancer</button>
-      <button class="btn btn-line btn-big" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
-    </div>
-  </section>
-  <section class="card piece" id="piece" aria-labelledby="piece-titre">
-    <h2 id="piece-titre">La pièce tirée</h2>
     <ul id="pieceRows"></ul>
   </section>
-</div>
 
-<div class="row">
-  <section class="card grid-card" id="grille" aria-labelledby="grille-titre">
-    <div class="grid-head"><h2 id="grille-titre">La grille</h2><span id="gridSub"></span></div>
-    <div class="player">
-      <span class="tempo"><label for="tempo">Tempo (croche)</label><input id="tempo" type="range" min="120" max="400" step="5" value="240"><output id="tempoOut" for="tempo">240</output></span>
-      <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
-      <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
-      <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
-      <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
-      <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
-    </div>
-    <div class="grid" id="grid"></div>
-    <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
-    <div class="player">
-      <button class="btn btn-sm" id="copy" type="button">Copier la grille</button>
-      <button class="btn btn-sm" id="dl" type="button">Télécharger MIDI</button>
-      <p class="status" id="status" aria-live="polite"></p>
-    </div>
-    <h3 class="sub-h">Poids des accords <span class="status" id="dieInfo"></span></h3>
-    <div class="weights" id="weights"></div>
-  </section>
+  <div class="row">
+    <section class="card carnet-card" aria-labelledby="carnet-titre">
+      <h2 id="carnet-titre">Les tirages</h2>
+      <div class="section"><div class="section-head"><h3><span>I</span>Métrique</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="met" type="button" aria-label="Règle de la métrique">?</button><button class="btn btn-sm" data-reroll="met" type="button">Relancer</button></span></div><ul class="rolls" id="log-met"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>II</span>Tonalité</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="ton" type="button" aria-label="Règle de la tonalité">?</button><button class="btn btn-sm" data-reroll="ton" type="button">Relancer</button></span></div><ul class="rolls" id="log-ton"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>III</span>Degrés</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="deg" type="button" aria-label="Règle des degrés">?</button><button class="btn btn-sm" data-reroll="deg" type="button">Relancer</button></span></div><ul class="rolls" id="log-deg"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>IV</span>Grille</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="grid" type="button" aria-label="Règle de la grille">?</button><button class="btn btn-sm" data-reroll="grid" type="button">Relancer</button></span></div><ul class="rolls" id="log-grid"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>V</span>Mélodie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="mel" type="button" aria-label="Règle de la mélodie">?</button><button class="btn btn-sm" data-reroll="mel" type="button">Relancer</button></span></div><ul class="rolls" id="log-mel"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>VI</span>Batterie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="drums" type="button" aria-label="Règle de la batterie">?</button><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></span></div><ul class="rolls" id="log-drums"></ul></div>
+    </section>
 
-  <section class="card rules-card" id="regles" aria-labelledby="regles-titre">
-    <h2 id="regles-titre">Les règles</h2>
-    <ol>
-      <li><span>1</span><span><strong>Métrique.</strong> 5 + D10 croches par mesure, D6 mesures, D6 binaire (groupes de 2) ou ternaire (groupes de 3).</span></li>
-      <li><span>2</span><span><strong>Tonalité.</strong> Trois D8 : bémols ou dièses, combien (8 = aucune), mineur ou majeur. En mineur, pile ou face : naturel ou harmonique.</span></li>
-      <li><span>3</span><span><strong>Degrés.</strong> D6 degrés, un D8 pour chacun (8 et doublons relancés), un D20 pour leur fréquence (égalités relancées).</span></li>
-      <li><span>4</span><span><strong>Grille.</strong> Le degré le plus fréquent a n chances, le suivant n − 1… Un dé couvre le total (D4, D6, D10, D20, D100 pour 21). Un accord par demi-mesure, en boucle.</span></li>
-      <li><span>5</span><span><strong>Mélodie</strong> (provisoire). D6 ambitus ; un D6 de rythme par groupe de croches ; note de l’accord au D6 en début de demi-mesure, puis mouvement au D8.</span></li>
-      <li><span>6</span><span><strong>Batterie.</strong> D6 charleston ou ride, D6 densité, D6 break. Grosse caisse au 1ᵉʳ temps et aux demi-mesures, D6 grosse caisse ou caisse claire sur les autres groupes, crash aux changements d’accord.</span></li>
-    </ol>
-  </section>
-</div>
-
-<section class="card" id="carnet" aria-labelledby="carnet-titre">
-  <h2 id="carnet-titre">Le carnet des tirages</h2>
-  <div class="carnet">
-    <div class="section"><div class="section-head"><h3><span>I</span>Métrique</h3><button class="btn btn-sm" data-reroll="met" type="button">Relancer</button></div><ul class="rolls" id="log-met"></ul></div>
-    <div class="section"><div class="section-head"><h3><span>II</span>Tonalité</h3><button class="btn btn-sm" data-reroll="ton" type="button">Relancer</button></div><ul class="rolls" id="log-ton"></ul></div>
-    <div class="section"><div class="section-head"><h3><span>III</span>Degrés</h3><button class="btn btn-sm" data-reroll="deg" type="button">Relancer</button></div><ul class="rolls" id="log-deg"></ul></div>
-    <div class="section"><div class="section-head"><h3><span>IV</span>Grille</h3><button class="btn btn-sm" data-reroll="grid" type="button">Relancer</button></div><ul class="rolls" id="log-grid"></ul></div>
-    <div class="section"><div class="section-head"><h3><span>V</span>Mélodie</h3><button class="btn btn-sm" data-reroll="mel" type="button">Relancer</button></div><ul class="rolls" id="log-mel"></ul></div>
-    <div class="section"><div class="section-head"><h3><span>VI</span>Batterie</h3><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></div><ul class="rolls" id="log-drums"></ul></div>
+    <section class="card grid-card" id="grille" aria-labelledby="grille-titre">
+      <div class="grid-head"><h2 id="grille-titre">La grille</h2><span id="gridSub"></span></div>
+      <div class="player">
+        <span class="tempo"><label for="tempo">Tempo (noire)</label><input id="tempo" type="range" min="40" max="240" step="1" value="100"><output id="tempoOut" for="tempo">100</output></span>
+        <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
+        <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
+        <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
+        <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
+        <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
+      <h3 class="sub-h">Poids des accords <span class="status" id="dieInfo"></span></h3>
+      <div class="weights" id="weights"></div>
+    </section>
   </div>
-</section>
+
+  <section class="card actions-card" aria-label="Exporter">
+    <button class="btn btn-ink" id="copy" type="button">Copier la grille</button>
+    <button class="btn btn-line" id="dl" type="button">Télécharger MIDI</button>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+</main>
 
 <footer>
   <span>Musique aléatoire systémique, d’après le document de 2020.</span>
@@ -230,13 +255,10 @@ footer{min-height:72px;display:flex;flex-wrap:wrap;align-items:center;justify-co
 <div class="modal" id="modal" hidden>
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modale-titre">
     <div class="dialog-head">
-      <h2 id="modale-titre">D’où vient mon design ?</h2>
-      <button class="close" id="closeDesign" type="button" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h2 id="modale-titre"></h2>
+      <button class="close" id="closeModal" type="button" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <p style="margin:0">Aucun dé en plus : la page lit le tirage de ta musique. Les dés qui composent la pièce choisissent aussi les couleurs, les polices et l’arrondi des blocs. La place et la taille des blocs ne changent jamais.</p>
-    <ul id="designRows"></ul>
-    <div class="swatches" id="swatches" aria-label="Palette de cette page"></div>
-    <p style="margin:0;font-size:13px;opacity:.85">Toujours joyeux : couleurs vives sur fond clair, et le texte prend l’encre la plus lisible sur chaque couleur.</p>
+    <div class="body" id="modalBody"></div>
   </div>
 </div>
 <script>
@@ -453,13 +475,16 @@ const RADII=[0,6,12,20,28,40];
 function lum(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l), f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))), lin=c=>c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4); return .2126*lin(f(0))+.7152*lin(f(8))+.0722*lin(f(4)); }
 const contrast=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
 let THEME=null;
-function applyTheme(){
-  const M=S.met, Tn=S.ton;
-  const fifths=Tn.alt==="♭"?-Tn.count:Tn.count;
+function drawDesign(){
+  const sign=d(8), cnt=d(8), mode=d(8), title=d(10), text=d(6), shape=d(6);
+  return {sign,cnt,mode,title,text,shape,flat:sign<=4,count:cnt===8?0:cnt,minor:mode<=4};
+}
+function applyTheme(P){
+  const fifths=P.flat?-P.count:P.count;
   const root=(15+fifths*30+360)%360;
-  const iv=Tn.mode==="min"?[0,3,7]:[0,4,7];
+  const iv=P.minor?[0,3,7]:[0,4,7];
   const hues=iv.map(x=>(root+x*30)%360); HUES=hues;
-  const disp=DISPLAY[M.a-1], body=BODY[M.mes-1], rad=RADII[M.dv-1];
+  const disp=DISPLAY[P.title-1], body=BODY[P.text-1], rad=RADII[P.shape-1];
   const lift=h=>h>=190&&h<=300?8:0, accL=[64,72,62];
   const acc=hues.map((h,i)=>({h,s:88,l:accL[i]+lift(h)}));
   const hsl=c=>`hsl(${c.h} ${c.s}% ${c.l}%)`;
@@ -473,10 +498,13 @@ function applyTheme(){
     "--radius":rad+"px","--radius-xs":Math.round(rad*.4)+"px","--radius-btn":(rad>=20?999:rad)+"px"};
   const r=document.documentElement.style; Object.entries(v).forEach(([k,val])=>r.setProperty(k,val));
   const tints=hues.map(h=>`hsl(${h} 90% ${88+lift(h)/2}%)`), tints2=hues.map(h=>`hsl(${h} 85% ${80+lift(h)/2}%)`);
-  THEME={root,hues,disp,body,rad,v,tints,tints2};
+  THEME={P,root,hues,disp,body,rad,v,tints,tints2};
+  $("logoDie").innerHTML=dieSvg("d6",P.text,hues[0],48);
+  $("decoBig").innerHTML=dieSvg("d10",P.title,hues[1],124);
+  $("decoSmall").innerHTML=dieSvg("d8",P.cnt,hues[2],70);
 }
 function render(){
-  computeChords(); applyTheme(); dieHueIdx=0;
+  computeChords(); dieHueIdx=0;
   const M=S.met, Tn=S.ton, D=S.deg, G=S.grid;
   renderLog("log-met",M.log);
   renderLog("log-ton",Tn.log);
@@ -505,22 +533,10 @@ function render(){
     {k:"d6",v:S.mel.span===5?2:S.mel.span===7?4:6,h:Hh[2],l:"Mélodie et batterie",r:`ambitus ${S.mel.span===5?"sixte":S.mel.span===7?"octave":"dixième"}, ${S.drums.ride?"ride":"charleston"}`,d:`${S.mel.notes.length} notes · densité ${S.drums.dens==="croches"?"croches":S.drums.dens==="doubles"?"doubles croches":"par groupe"}${S.drums.fill?" · break en fin":""}`}
   ];
   $("pieceRows").innerHTML=rows.map(x=>`<li>${dieSvg(x.k,x.v,x.h,48)}<span class="t"><b>${x.l} : ${x.r}</b><small>${x.d}</small></span></li>`).join("");
-  $("logoDie").innerHTML=dieSvg("d6",M.mes,Hh[0],48);
-  $("decoBig").innerHTML=dieSvg("d10",M.a,Hh[1],124);
-  $("decoSmall").innerHTML=dieSvg("d8",Tn.dice[1],Hh[2],70);
   $("grille-titre").textContent="La grille, en "+keyFull;
   $("gridSub").textContent=`${M.n}/8 (${M.groups.join("+")}) · un accord par demi-mesure · en boucle`;
   $("footKey").textContent=`${keyFull} · ${M.n}/8 · ${M.mes} mesure${M.mes>1?"s":""}`;
-  const T=THEME;
-  $("designRows").innerHTML=[
-    {k:"d8",v:Tn.dice[0],h:Hh[0],m:"D8 bémols ou dièses : "+(Tn.alt==="♭"?"bémols":"dièses"),d:"sens de rotation de la couleur sur le cercle (comme sur le cycle des quintes)"},
-    {k:"d8",v:Tn.dice[1],h:Hh[1],m:"D8 altérations : "+(Tn.count===0?"aucune":Tn.count),d:`couleur de base : 30° de plus par altération, Do majeur est le point de départ (teinte ${T.root}°)`},
-    {k:"d8",v:Tn.dice[2],h:Hh[2],m:"D8 mode : "+(Tn.mode==="min"?"mineur":"majeur"),d:Tn.mode==="min"?"palette en accord mineur : 3 couleurs espacées comme la-do-mi":"palette en accord majeur : 3 couleurs espacées comme do-mi-sol"},
-    {k:"d10",v:M.a,h:Hh[0],m:`D10 métrique : ${M.n} croches`,d:"police des titres, une par face sur 10 : "+T.disp[0]},
-    {k:"d6",v:M.mes,h:Hh[1],m:"D6 mesures : "+M.mes,d:"police du texte, une par face sur 6 : "+T.body[0]},
-    {k:"d6",v:M.dv,h:Hh[2],m:"D6 division : "+M.div,d:`forme des blocs : du plus anguleux au plus arrondi (${T.rad} px)`}
-  ].map(x=>`<li>${dieSvg(x.k,x.v,x.h,56)}<span class="t"><b>${x.m}</b><span class="d">→ ${x.d}</span></span></li>`).join("");
-  $("swatches").innerHTML=[["Fond","--bg"],["Couleur 1","--a1"],["Couleur 2","--a2"],["Couleur 3","--a3"],["Encre","--ink"]].map(([n,k])=>`<span title="${n}" style="background:${T.v[k]}"></span>`).join("");
+
 
   // Grille
   const order=D.list.map(x=>x.deg).sort((a,b)=>a-b);
@@ -565,7 +581,7 @@ function bassNote(pc){ return 36+((pc-36)%12+12)%12; }
 function buildMidi(){
   const M=S.met, G=S.grid, PPQ=480, CRO=240, SUB=120;
   const ev=[];
-  const bpmQ=Number($("tempo").value)/2;
+  const bpmQ=Number($("tempo").value);
   const tempo=Math.round(60000000/bpmQ);
   const sf=S.ton.alt==="♯"?S.ton.count:-S.ton.count;
   ev.push({t:0,o:0,b:[0xFF,0x51,3,(tempo>>16)&255,(tempo>>8)&255,tempo&255]});
@@ -632,7 +648,7 @@ function drum(inst,t,vel){
   else if(inst==="crash"){ noise(t,1.4,{hp:3800,gain:.26*v,decay:1.3}); }
 }
 function click(t,level){ const f=[0,900,1250,1700][level], v=[0,.05,.1,.16][level]; tone(f,t,.035,{type:"sine",gain:v,attack:.001,release:.03,cutoff:8000}); }
-function subDur(){ return 60/(Number($("tempo").value)*2); }
+function subDur(){ return 60/(Number($("tempo").value)*4); }
 function schedule(s,m,t){
   const M=S.met, n=M.n, cell=m*2+(s<n?0:1), ch=chords[S.grid.cells[cell].deg], sd=subDur();
   if(s===0||s===n){ voicing(ch.pcs).forEach(x=>{ tone(mtof(x),t,n*sd,{type:"sawtooth",gain:.035,attack:.04,release:.12,cutoff:1500}); tone(mtof(x),t,n*sd,{type:"triangle",gain:.05,attack:.02,release:.12}); }); }
@@ -708,14 +724,45 @@ $("dl").addEventListener("click",async()=>{
 });
 
 const modal=$("modal"); let lastFocus=null;
-function openModal(){ lastFocus=document.activeElement; modal.hidden=false; $("closeDesign").focus(); }
+function openModal(title,html){ $("modale-titre").textContent=title; $("modalBody").innerHTML=html; lastFocus=document.activeElement; modal.hidden=false; $("closeModal").focus(); }
 function closeModal(){ modal.hidden=true; if(lastFocus) lastFocus.focus(); }
-$("openDesign").addEventListener("click",openModal);
-$("closeDesign").addEventListener("click",closeModal);
+$("closeModal").addEventListener("click",closeModal);
+function designHtml(){
+  const T=THEME, P=T.P, H=T.hues;
+  const rows=[
+    {k:"d8",v:P.sign,h:H[0],m:"D8 : "+(P.flat?"bémols":"dièses"),d:"sens de rotation de la couleur sur le cercle, comme sur le cycle des quintes"},
+    {k:"d8",v:P.cnt,h:H[1],m:"D8 : "+(P.count===0?"aucune altération":P.count+" altération"+(P.count>1?"s":"")),d:`couleur de base : 30° de plus par altération, Do majeur est le point de départ (teinte ${T.root}°)`},
+    {k:"d8",v:P.mode,h:H[2],m:"D8 : "+(P.minor?"mineur":"majeur"),d:P.minor?"palette en accord mineur : 3 couleurs espacées comme la-do-mi":"palette en accord majeur : 3 couleurs espacées comme do-mi-sol"},
+    {k:"d10",v:P.title,h:H[0],m:"D10 : police des titres",d:"une police par face sur 10 : "+T.disp[0]},
+    {k:"d6",v:P.text,h:H[1],m:"D6 : police du texte",d:"une police par face sur 6 : "+T.body[0]},
+    {k:"d6",v:P.shape,h:H[2],m:"D6 : forme des blocs",d:`du plus anguleux (1) au plus arrondi (6) : ${T.rad} px`}
+  ];
+  return `<p>Le design est tiré au sort à chaque arrivée sur le site, avec ses propres dés, comme une tonalité qu’on ne jouerait pas. La place et la taille des blocs ne changent jamais.</p>
+  <ul>${rows.map(x=>`<li>${dieSvg(x.k,x.v,x.h,56)}<span class="t"><b>${x.m}</b><span class="d">→ ${x.d}</span></span></li>`).join("")}</ul>
+  <div class="swatches" aria-label="Palette de cette page">${[["Fond","--bg"],["Couleur 1","--a1"],["Couleur 2","--a2"],["Couleur 3","--a3"],["Encre","--ink"]].map(([n,k])=>`<span title="${n}" style="background:${T.v[k]}"></span>`).join("")}</div>`;
+}
+$("openDesign").addEventListener("click",()=>openModal("D’où vient mon design ?",designHtml()));
+const RULES={
+  met:["Métrique",`<ol class="r"><li><strong>Croches par mesure</strong> : 5 + D10, donc de 6 à 15 croches.</li><li><strong>Nombre de mesures</strong> : D6, de 1 à 6. La grille tourne en boucle.</li><li><strong>Division</strong> : D6. De 1 à 3, binaire : les croches sont groupées par 2. De 4 à 6, ternaire : groupées par 3. Un groupe de 3 ou de 2 complète si le compte ne tombe pas juste (7/8 binaire = 2+2+3, 8/8 ternaire = 3+3+2).</li></ol><p>Les groupes donnent les temps forts : la batterie et la mélodie s’y appuient.</p>`],
+  ton:["Tonalité",`<ol class="r"><li><strong>D8</strong> : de 1 à 4 bémols, de 5 à 8 dièses.</li><li><strong>D8</strong> : nombre d’altérations. Le 8 donne aucune altération (do majeur ou la mineur).</li><li><strong>D8</strong> : de 1 à 4 mineur, de 5 à 8 majeur.</li><li>En mineur, <strong>pile ou face</strong> : mineur naturel ou harmonique (V majeur, VII diminué).</li></ol><p>Exemple : 5, 2, 6 donne deux dièses en majeur, soit ré majeur.</p>`],
+  deg:["Degrés",`<ol class="r"><li><strong>D6</strong> : combien de degrés on utilise.</li><li><strong>D8 par degré</strong> : lequel (I à VII). Le 8 et les doublons sont relancés.</li><li><strong>D20 par degré</strong> : sa fréquence. Plus le score est haut, plus l’accord reviendra. Les égalités sont relancées.</li></ol><p>Exemple en ré majeur : I, II, III et VI donnent D, Em, F♯m et Bm.</p>`],
+  grid:["Grille",`<ol class="r"><li>Les degrés sont classés par leur score au D20. Le dernier reçoit 1 chance, le suivant 2… le premier n chances.</li><li>Le total des chances donne le dé : 3 → D4 (4 relancé), 6 → D6, 10 → D10, 15 → D20 (au-delà de 15 relancé), 21 → D100 (1 à 84 ramené de 1 à 21, 85 à 100 relancé).</li><li>Un lancer par <strong>demi-mesure</strong> choisit l’accord. Une mesure de 7 croches se coupe en 2 × 7 doubles croches.</li></ol><p>Exemple avec 4 degrés : D = 1, F♯m = 2–3, Em = 4–6, Bm = 7–10, sur un D10.</p>`],
+  mel:["Mélodie (règles provisoires)",`<ol class="r"><li><strong>Ambitus</strong> : D6. De 1 à 2 une sixte, de 3 à 4 une octave, de 5 à 6 une dixième, autour de la tonique.</li><li><strong>Rythme</strong> : un D6 par groupe de croches. Groupe de 2 : noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche. Groupe de 3 : noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches.</li><li><strong>Note d’appui</strong> : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, au D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche de la précédente.</li><li><strong>Notes suivantes</strong> : D8. 1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche. Hors ambitus, le mouvement s’inverse.</li><li>La dernière note de la grille devient la fondamentale de son accord.</li></ol>`],
+  drums:["Batterie",`<ol class="r"><li><strong>Trois dés pour toute la grille</strong> : D6 cymbale de rythme (1–4 charleston, 5–6 ride), D6 densité (1–2 croches, 3–4 doubles croches, 5–6 un coup par groupe), D6 break (5–6 roulement de caisse claire sur le dernier groupe de la grille).</li><li><strong>Grosse caisse</strong> au 1ᵉʳ temps et à chaque demi-mesure.</li><li><strong>Autres groupes de croches</strong> : D6. 1–2 grosse caisse, 3–5 caisse claire, 6 les deux.</li><li><strong>Crash</strong> au début de la grille, puis D6 5–6 quand l’accord change.</li><li><strong>Charleston ouvert</strong> sur la dernière croche de la mesure au D6 6.</li></ol>`]
+};
+document.querySelectorAll("[data-rule]").forEach(b=>b.addEventListener("click",()=>{ const r=RULES[b.dataset.rule]; openModal(r[0],r[1]); }));
 modal.addEventListener("click",e=>{ if(e.target===modal) closeModal(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!modal.hidden) closeModal(); });
 
-reroll("all");
+function showLanding(){
+  if(playing) togglePlay();
+  applyTheme(drawDesign());
+  $("composition").hidden=true; $("landing").hidden=false; $("footKey").textContent="";
+  window.scrollTo(0,0);
+}
+$("compose").addEventListener("click",()=>{ reroll("all"); $("landing").hidden=true; $("composition").hidden=false; window.scrollTo(0,0); });
+$("home").addEventListener("click",e=>{ e.preventDefault(); showLanding(); });
+showLanding();
 })();
 </script>
 </body>
