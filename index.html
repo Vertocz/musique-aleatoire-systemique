@@ -37,6 +37,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:20px clamp(16px,3vw,40px) 48px}
 h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
@@ -124,7 +125,7 @@ header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
   <div class="bar">
     <button class="btn primary" id="rollAll" type="button">Tout relancer</button>
     <button class="btn" id="copy" type="button">Copier la grille</button>
-    <button class="btn" id="dl" type="button" hidden>Télécharger MIDI (.zip)</button>
+    <button class="btn" id="dl" type="button">Télécharger MIDI</button>
   </div>
 </header>
 
@@ -462,10 +463,17 @@ $("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").v
 $("copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(gridText()); $("status").textContent="Grille copiée dans le presse-papiers."; }catch(e){ $("status").textContent="La copie a été refusée par le navigateur."; } });
 
 let downloads=null;
-if(window.claude&&window.claude.use){ window.claude.use("downloads").then(ns=>{ downloads=ns; if(ns) $("dl").hidden=false; }).catch(()=>{}); }
+const inClaude=!!(window.claude&&window.claude.use);
+if(inClaude){ $("dl").hidden=true; window.claude.use("downloads").then(ns=>{ downloads=ns; if(ns){ $("dl").textContent="Télécharger MIDI (.zip)"; $("dl").hidden=false; } }).catch(()=>{}); }
 $("dl").addEventListener("click",async()=>{
-  if(!downloads) return;
   const enc=new TextEncoder(), base=slug();
+  if(!inClaude){
+    const url=URL.createObjectURL(new Blob([buildMidi()],{type:"audio/midi"}));
+    const a=document.createElement("a"); a.href=url; a.download=base+".mid"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    $("status").textContent="Fichier MIDI téléchargé."; return;
+  }
+  if(!downloads) return;
   const blob=zip([{name:base+".mid",data:buildMidi()},{name:base+".txt",data:enc.encode(gridText())}]);
   try{ await downloads.save({filename:base+".zip",data:blob}); $("status").textContent="Fichier enregistré : le .mid est dans le .zip."; }
   catch(e){ $("status").textContent= e&&e.code==="declined"?"Téléchargement annulé.":"Le téléchargement n’est pas disponible ici."; }
