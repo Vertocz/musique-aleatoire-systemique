@@ -6,210 +6,239 @@
 <title>Musique aléatoire systémique</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Baloo+2:wght@800&family=Bricolage+Grotesque:wght@400;800&family=Bungee&family=Chewy&family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;700&family=Fraunces:wght@400;900&family=Lilita+One&family=Nunito:wght@400;600;800&family=Outfit:wght@400;500;700&family=Righteous&family=Shrikhand&family=Space+Grotesk:wght@400;500;700&family=Unbounded:wght@500;800&family=Work+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Layout : barre de commande en haut, à gauche le carnet des tirages, à droite le résultat (tonalité, grille, poids). */
-  --bg:#eef0ec;
-  --surface:#fbfcfa;
-  --ink:#18202b;
-  --muted:#5b6573;
-  --line:#d3d8d0;
-  --accent:#2445c9;
-  --accent-soft:#dfe5fb;
-  --die:#b8730a;
-  --die-soft:#f6ead3;
-  --display:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --body:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  /* Design lu dans le tirage : ces valeurs sont remplacées à chaque tirage par applyTheme(). Blocs fixes : seules couleurs, polices et arrondis changent. */
+  --bg:hsl(15 80% 95%); --surface:hsl(15 70% 99%); --ink:hsl(15 45% 10%);
+  --a1:hsl(15 88% 64%); --a2:hsl(135 88% 72%); --a3:hsl(225 88% 70%);
+  --a1-ink:var(--ink); --a2-ink:var(--ink); --a3-ink:var(--ink);
+  --deep:hsl(15 80% 38%); --tint:hsl(15 90% 90%);
+  --display:'Bricolage Grotesque', sans-serif; --display-w:800; --body:'DM Sans', sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius:12px; --radius-xs:5px; --radius-btn:12px;
+  --hero-size:76px; --chord-size:24px;
+  --muted:color-mix(in srgb, var(--ink) 68%, transparent);
+  --line:color-mix(in srgb, var(--ink) 16%, transparent);
   color-scheme:light;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#11151b; --surface:#1a2029; --ink:#e8ebef; --muted:#9aa4b2; --line:#2c3440;
-    --accent:#8ea3ff; --accent-soft:#232d4f; --die:#f0b14a; --die-soft:#3a2d14;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#11151b; --surface:#1a2029; --ink:#e8ebef; --muted:#9aa4b2; --line:#2c3440;
-  --accent:#8ea3ff; --accent-soft:#232d4f; --die:#f0b14a; --die-soft:#3a2d14;
-  color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:20px clamp(16px,3vw,40px) 48px}
-h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
-h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.01em}
-h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);padding:32px clamp(16px,3vw,32px) 24px}
+a{color:inherit} a:hover{opacity:.78}
 button,input{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:var(--display-w);margin:0;line-height:1.08;text-wrap:balance}
+.wrap{max-width:1216px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.row{display:flex;flex-wrap:wrap;gap:24px}
+.card{background:var(--surface);border-radius:var(--radius);padding:32px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.card h2{font-size:26px}
 
-header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-bottom:20px}
-header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:500;display:inline-flex;gap:8px;align-items:center}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
-.btn.small{padding:4px 10px;font-size:13px}
-.btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+/* En-tête */
+header{min-height:64px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand span{font-family:var(--display);font-weight:var(--display-w);font-size:22px;line-height:1.05}
+nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+nav a{padding:12px 14px;font-weight:500;text-decoration:none}
+.btn{min-height:44px;padding:0 20px;border:0;font-weight:700;border-radius:var(--radius-btn);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn-a3{background:var(--a3);color:var(--a3-ink)}
+.btn-ink{background:var(--ink);color:var(--bg)}
+.btn-line{background:transparent;color:inherit;box-shadow:inset 0 0 0 2px currentColor}
+.btn-big{min-height:52px;padding:0 26px;font-size:17px}
+.btn-sm{min-height:34px;padding:0 14px;font-size:14px;background:var(--bg);color:var(--ink)}
+.btn[aria-pressed="true"]{background:var(--a3);color:var(--a3-ink)}
 
-.layout{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:20px;align-items:start}
-@media (max-width:860px){.layout{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+/* Accueil */
+.hero{flex:7 1 520px;min-height:440px;padding:48px;position:relative;overflow:hidden;justify-content:space-between;gap:32px;background:var(--a1);color:var(--a1-ink)}
+.hero .eyebrow{margin:0;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.hero h1{font-size:var(--hero-size);line-height:1;max-width:500px}
+.hero p.lead{margin:20px 0 0;font-size:19px;max-width:460px}
+.hero .actions{display:flex;flex-wrap:wrap;gap:12px}
+.hero .deco{position:absolute;pointer-events:none}
+.piece{flex:5 1 360px;min-height:440px}
+.piece ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.piece li{display:flex;align-items:center;gap:14px}
+.piece li .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.piece li b{font-size:16px}
+.piece li small{font-size:13px;opacity:.8}
 
-/* Carnet de tirages */
-.section{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
-.section:first-of-type{border-top:0;padding-top:0}
-.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.section-head h3{font-size:17px;font-weight:700}
-.section-head h3 span{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:6px;font-size:14px}
-.rolls{list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.rolls li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;font-size:14px}
-.die{font-family:var(--mono);font-size:13px;background:var(--die-soft);color:var(--die);border-radius:6px;padding:1px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.die b{color:var(--ink);font-weight:600}
-.die s{opacity:.6;margin-right:3px}
-.rolls .txt{color:var(--muted)}
-.rolls .txt strong{color:var(--ink);font-weight:600}
-
-/* Résultat */
-.result{display:grid;gap:20px}
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.tile .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-.tile .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.15;margin-top:4px}
-.tile .s{color:var(--muted);font-size:13px;margin-top:2px}
-
-.player{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
-.player label{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
-.tempo{display:inline-flex;gap:8px;align-items:center;font-size:14px}
-.tempo output{font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:3ch}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.measure{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
-.measure-top{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px;color:var(--muted);font-family:var(--mono);border-bottom:1px solid var(--line)}
-.halves{display:grid;grid-template-columns:1fr 1fr}
-.half{padding:12px 10px 8px;min-height:84px;display:grid;align-content:start;gap:2px;transition:background .08s}
-.half + .half{border-left:1px dashed var(--line)}
-.half .ch{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.1}
-.half .rn{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.half .roll{font-family:var(--mono);font-size:11px;color:var(--die)}
-.half.on{background:var(--accent-soft)}
-.half.on .ch{color:var(--accent)}
-.ticks{display:flex;gap:2px;padding:0 10px 10px}
+/* Grille */
+.grid-card{flex:8 1 560px}
+.grid-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px}
+.grid-head span{font-size:14px;font-weight:500;opacity:.8}
+.player{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:14px}
+.player label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.tempo{display:inline-flex;gap:8px;align-items:center}
+.tempo output{font-family:var(--mono);min-width:3ch}
+input[type=range]{accent-color:var(--deep)}
+input[type=checkbox]{accent-color:var(--deep);width:16px;height:16px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.grid{grid-template-columns:1fr}}
+.measure{display:flex;flex-direction:column;gap:6px;min-width:0}
+.measure-top{font-size:12px;font-weight:700;opacity:.75;display:flex;justify-content:space-between}
+.halves{height:84px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.half{padding:8px 10px;min-width:0;display:flex;flex-direction:column;justify-content:center;border-radius:var(--radius-xs);transition:box-shadow .08s}
+.half .rn{font-size:11px;font-weight:700;opacity:.75}
+.half .ch{font-family:var(--display);font-weight:var(--display-w);font-size:var(--chord-size);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.half.on{box-shadow:inset 0 0 0 3px var(--ink)}
+.roll-svg{display:block;width:100%;height:50px;background:var(--bg);border-radius:var(--radius-xs)}
+.roll-svg rect.n{fill:var(--deep)}
+.roll-svg line,.drum-svg line{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.mel{font-family:var(--mono);font-size:11px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.drum-svg{display:block;width:100%;height:34px}
+.drum-svg .k{fill:var(--ink)} .drum-svg .sn{fill:var(--deep)} .drum-svg .hh{fill:color-mix(in srgb, var(--ink) 45%, transparent)} .drum-svg .cy{fill:var(--a3)}
+.ticks{display:flex;gap:2px}
 .ticks i{flex:1;height:6px;border-radius:2px;background:var(--line)}
-.ticks i.g{background:var(--muted)}
-.ticks i.d{background:var(--ink)}
-.ticks i.now{background:var(--accent)}
-
-.weights{display:grid;gap:8px}
-.wrow{display:grid;grid-template-columns:70px 1fr 110px;gap:12px;align-items:center;font-size:14px}
-.wrow .name{font-family:var(--display);font-weight:700;font-size:18px}
-.wbar{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}
-.wbar span{display:block;height:100%;background:var(--accent);border-radius:6px}
-.wrow .meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
-
-.roll-svg{display:block;width:calc(100% - 20px);height:54px;margin:0 10px 6px;background:var(--bg);border-radius:6px}
-.roll-svg rect.n{fill:var(--accent)}
-.roll-svg line{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
-.mel{font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 10px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.drum-svg{display:block;width:calc(100% - 20px);height:34px;margin:0 10px 8px}
-.drum-svg .k{fill:var(--ink)} .drum-svg .sn{fill:var(--accent)} .drum-svg .hh{fill:var(--muted)} .drum-svg .cy{fill:var(--die)}
-.drum-svg line{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
-.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:10px}
+.ticks i.g{background:var(--muted)} .ticks i.d{background:var(--ink)} .ticks i.now{background:var(--deep)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
-.rules{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:grid;gap:3px;max-width:75ch}
-.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.status{font-size:13px;color:var(--muted);min-height:1.5em}
+.status{font-size:13px;color:var(--muted);min-height:1.5em;margin:0}
+.weights{display:grid;gap:8px}
+.wrow{display:grid;grid-template-columns:76px 1fr 110px;gap:12px;align-items:center;font-size:14px}
+.wrow .name{font-family:var(--display);font-weight:var(--display-w);font-size:18px}
+.wbar{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}
+.wbar span{display:block;height:100%;background:var(--deep);border-radius:6px}
+.wrow .meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+.sub-h{font-size:18px}
+
+/* Règles */
+.rules-card{flex:4 1 300px;background:var(--a2);color:var(--a2-ink)}
+.rules-card ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.rules-card li{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.4}
+.rules-card li > span:first-child{flex:none;width:30px;height:30px;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--ink);color:var(--bg);border-radius:var(--radius-xs)}
+
+/* Carnet */
+.carnet{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px 28px}
+.section{display:grid;gap:10px;align-content:start}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.section-head h3{font-size:19px}
+.section-head h3 span{font-family:var(--mono);font-weight:400;font-size:13px;opacity:.6;margin-right:6px}
+.rolls{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rolls li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;font-size:14px}
+.rolls .txt{color:var(--muted)} .rolls .txt strong{color:var(--ink)}
+.dice{display:inline-flex;align-items:center;gap:4px}
+.dice s{font-family:var(--mono);font-size:12px;opacity:.55}
+.chip{font-family:var(--mono);font-size:12px;background:var(--tint);color:var(--ink);border-radius:var(--radius-xs);padding:2px 8px;white-space:nowrap}
+.chip b{font-weight:600}
+
+footer{min-height:72px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;font-size:14px;border-top:2px solid var(--ink)}
+
+/* Modale */
+.modal{position:fixed;inset:0;z-index:10;padding:24px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
+.dialog{width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:18px;background:var(--surface);color:var(--ink);border-radius:var(--radius);box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.dialog h2{font-size:30px}
+.close{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;padding:0;background:var(--bg);border-radius:999px;cursor:pointer}
+.dialog ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
+.dialog li{display:flex;align-items:center;gap:16px}
+.dialog li .t{display:flex;flex-direction:column;gap:3px}
+.dialog li b{font-size:15px} .dialog li span.d{font-size:14px;line-height:1.4}
+.swatches{display:flex;gap:8px}
+.swatches span{flex:1 1 0;height:32px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);border-radius:var(--radius-xs)}
 @media (prefers-reduced-motion: reduce){.half{transition:none}}
+@media (max-width:600px){.hero{padding:32px}.card{padding:24px}}
 </style>
 </head>
 <body>
+<div class="wrap">
 <header>
-  <div>
-    <h1>Musique aléatoire systémique</h1>
-    <p>Mesure, tonalité, degrés puis grille d’accords : chaque étape est tirée aux dés et limite les choix de la suivante.</p>
-  </div>
-  <div class="bar">
-    <button class="btn primary" id="rollAll" type="button">Tout relancer</button>
-    <button class="btn" id="copy" type="button">Copier la grille</button>
-    <button class="btn" id="dl" type="button">Télécharger MIDI</button>
-  </div>
+  <a class="brand" href="#accueil"><span id="logoDie"></span><span>Musique aléatoire<br>systémique</span></a>
+  <nav aria-label="Navigation principale">
+    <a href="#piece">La pièce</a>
+    <a href="#grille">La grille</a>
+    <a href="#carnet">Les tirages</a>
+    <a href="#regles">Les règles</a>
+    <button class="btn btn-a3" id="openDesign" type="button">D’où vient mon design ?</button>
+  </nav>
 </header>
 
-<div class="layout">
-  <aside class="panel" aria-label="Tirages">
-    <div class="panel-head"><h2>Carnet des tirages</h2></div>
-    <div class="section">
-      <div class="section-head"><h3><span>I</span>Métrique</h3><button class="btn small" data-reroll="met" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-met"></ul>
+<div class="row" id="accueil">
+  <section class="card hero">
+    <div class="deco" id="decoBig" aria-hidden="true" style="right:36px;top:28px;transform:rotate(10deg)"></div>
+    <div class="deco" id="decoSmall" aria-hidden="true" style="right:44px;top:158px;transform:rotate(-14deg)"></div>
+    <p class="eyebrow">Composition par tirages de dés</p>
+    <div>
+      <h1>Composer avec les dés.</h1>
+      <p class="lead">Métrique, tonalité, degrés, grille, mélodie et batterie : chaque étape se tire aux dés et limite les choix de la suivante.</p>
     </div>
-    <div class="section">
-      <div class="section-head"><h3><span>II</span>Tonalité</h3><button class="btn small" data-reroll="ton" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-ton"></ul>
+    <div class="actions">
+      <button class="btn btn-ink btn-big" id="rollAll" type="button">Tout relancer</button>
+      <button class="btn btn-line btn-big" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
     </div>
-    <div class="section">
-      <div class="section-head"><h3><span>III</span>Degrés</h3><button class="btn small" data-reroll="deg" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-deg"></ul>
-    </div>
-    <div class="section">
-      <div class="section-head"><h3><span>IV</span>Grille</h3><button class="btn small" data-reroll="grid" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-grid"></ul>
-    </div>
-    <div class="section">
-      <div class="section-head"><h3><span>V</span>Mélodie</h3><button class="btn small" data-reroll="mel" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-mel"></ul>
-    </div>
-    <div class="section">
-      <div class="section-head"><h3><span>VI</span>Batterie</h3><button class="btn small" data-reroll="drums" type="button">Relancer</button></div>
-      <ul class="rolls" id="log-drums"></ul>
-    </div>
-  </aside>
-
-  <main class="result">
-    <div class="summary" id="summary"></div>
-
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Grille d’accords</h2>
-        <div class="player">
-          <button class="btn primary" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
-          <span class="tempo"><label for="tempo">Tempo (croche)</label><input id="tempo" type="range" min="120" max="400" step="5" value="240"><output id="tempoOut" for="tempo">240</output></span>
-          <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
-          <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
-          <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
-          <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
-          <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
-        </div>
-      </div>
-      <div class="grid" id="grid"></div>
-      <div class="legend" aria-label="Légende de la batterie"><span><i style="background:var(--die)"></i>Cymbale crash</span><span><i style="background:var(--muted)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--accent)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
-      <div class="status" id="status" aria-live="polite"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><h2>Poids des accords</h2><span class="status" id="dieInfo"></span></div>
-      <div class="weights" id="weights"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><h2>Règles appliquées</h2></div>
-      <ol class="rules">
-        <li>Mesure : 5 + D10 croches. Nombre de mesures : D6. Division D6 : 1–3 binaire (croches groupées par 2), 4–6 ternaire (groupées par 3), complétées par un groupe de 3 ou de 2.</li>
-        <li>Tonalité : D8 pour ♭ (1–4) ou ♯ (5–8), D8 pour le nombre d’altérations (8 = aucune), D8 pour mineur (1–4) ou majeur (5–8). En mineur, pile ou face : mineur naturel ou harmonique.</li>
-        <li>Degrés : D6 pour leur nombre, puis un D8 par degré (8 et doublons relancés). Un D20 par degré les classe ; les égalités sont relancées.</li>
-        <li>Grille : le degré le plus probable reçoit n chances, le suivant n − 1… Le dé couvre le total : D4 (relance du 4), D6, D10, D20 (relance au-delà de 15). Pour 21 : D100, de 1 à 84 ramené de 1 à 21, de 85 à 100 relancé.</li>
-        <li>Mélodie (règles provisoires) : D6 pour l’ambitus (1–2 sixte, 3–4 octave, 5–6 dixième). Rythme : un D6 par groupe de croches, dans la table du groupe de 2 (noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche) ou du groupe de 3 (noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches).</li>
-        <li>Hauteurs : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche. Les autres : D8 (1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche). Hors ambitus, le mouvement s’inverse. La dernière note de la grille devient la fondamentale de son accord.</li>
-        <li>Batterie : D6 pour la cymbale de rythme (1–4 charleston, 5–6 ride), D6 pour sa densité (1–2 croches, 3–4 doubles croches, 5–6 un coup par groupe), D6 pour le break de fin de grille (5–6 roulement de caisse claire sur le dernier groupe).</li>
-        <li>Grosse caisse sur le 1ᵉʳ temps et à chaque changement de demi-mesure. Sur les autres groupes de croches, un D6 : 1–2 grosse caisse, 3–5 caisse claire, 6 les deux. Crash au début de la grille, et D6 5–6 quand l’accord change. Charleston ouvert sur la dernière croche de la mesure au D6 6.</li>
-        <li>Un accord par demi-mesure (une mesure de 7 croches = 2 × 7 doubles croches). La grille tourne en boucle.</li>
-      </ol>
-    </section>
-  </main>
+  </section>
+  <section class="card piece" id="piece" aria-labelledby="piece-titre">
+    <h2 id="piece-titre">La pièce tirée</h2>
+    <ul id="pieceRows"></ul>
+  </section>
 </div>
 
+<div class="row">
+  <section class="card grid-card" id="grille" aria-labelledby="grille-titre">
+    <div class="grid-head"><h2 id="grille-titre">La grille</h2><span id="gridSub"></span></div>
+    <div class="player">
+      <span class="tempo"><label for="tempo">Tempo (croche)</label><input id="tempo" type="range" min="120" max="400" step="5" value="240"><output id="tempoOut" for="tempo">240</output></span>
+      <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
+      <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
+      <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
+      <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
+      <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
+    <div class="player">
+      <button class="btn btn-sm" id="copy" type="button">Copier la grille</button>
+      <button class="btn btn-sm" id="dl" type="button">Télécharger MIDI</button>
+      <p class="status" id="status" aria-live="polite"></p>
+    </div>
+    <h3 class="sub-h">Poids des accords <span class="status" id="dieInfo"></span></h3>
+    <div class="weights" id="weights"></div>
+  </section>
+
+  <section class="card rules-card" id="regles" aria-labelledby="regles-titre">
+    <h2 id="regles-titre">Les règles</h2>
+    <ol>
+      <li><span>1</span><span><strong>Métrique.</strong> 5 + D10 croches par mesure, D6 mesures, D6 binaire (groupes de 2) ou ternaire (groupes de 3).</span></li>
+      <li><span>2</span><span><strong>Tonalité.</strong> Trois D8 : bémols ou dièses, combien (8 = aucune), mineur ou majeur. En mineur, pile ou face : naturel ou harmonique.</span></li>
+      <li><span>3</span><span><strong>Degrés.</strong> D6 degrés, un D8 pour chacun (8 et doublons relancés), un D20 pour leur fréquence (égalités relancées).</span></li>
+      <li><span>4</span><span><strong>Grille.</strong> Le degré le plus fréquent a n chances, le suivant n − 1… Un dé couvre le total (D4, D6, D10, D20, D100 pour 21). Un accord par demi-mesure, en boucle.</span></li>
+      <li><span>5</span><span><strong>Mélodie</strong> (provisoire). D6 ambitus ; un D6 de rythme par groupe de croches ; note de l’accord au D6 en début de demi-mesure, puis mouvement au D8.</span></li>
+      <li><span>6</span><span><strong>Batterie.</strong> D6 charleston ou ride, D6 densité, D6 break. Grosse caisse au 1ᵉʳ temps et aux demi-mesures, D6 grosse caisse ou caisse claire sur les autres groupes, crash aux changements d’accord.</span></li>
+    </ol>
+  </section>
+</div>
+
+<section class="card" id="carnet" aria-labelledby="carnet-titre">
+  <h2 id="carnet-titre">Le carnet des tirages</h2>
+  <div class="carnet">
+    <div class="section"><div class="section-head"><h3><span>I</span>Métrique</h3><button class="btn btn-sm" data-reroll="met" type="button">Relancer</button></div><ul class="rolls" id="log-met"></ul></div>
+    <div class="section"><div class="section-head"><h3><span>II</span>Tonalité</h3><button class="btn btn-sm" data-reroll="ton" type="button">Relancer</button></div><ul class="rolls" id="log-ton"></ul></div>
+    <div class="section"><div class="section-head"><h3><span>III</span>Degrés</h3><button class="btn btn-sm" data-reroll="deg" type="button">Relancer</button></div><ul class="rolls" id="log-deg"></ul></div>
+    <div class="section"><div class="section-head"><h3><span>IV</span>Grille</h3><button class="btn btn-sm" data-reroll="grid" type="button">Relancer</button></div><ul class="rolls" id="log-grid"></ul></div>
+    <div class="section"><div class="section-head"><h3><span>V</span>Mélodie</h3><button class="btn btn-sm" data-reroll="mel" type="button">Relancer</button></div><ul class="rolls" id="log-mel"></ul></div>
+    <div class="section"><div class="section-head"><h3><span>VI</span>Batterie</h3><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></div><ul class="rolls" id="log-drums"></ul></div>
+  </div>
+</section>
+
+<footer>
+  <span>Musique aléatoire systémique, d’après le document de 2020.</span>
+  <span id="footKey"></span>
+</footer>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modale-titre">
+    <div class="dialog-head">
+      <h2 id="modale-titre">D’où vient mon design ?</h2>
+      <button class="close" id="closeDesign" type="button" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p style="margin:0">Aucun dé en plus : la page lit le tirage de ta musique. Les dés qui composent la pièce choisissent aussi les couleurs, les polices et l’arrondi des blocs. La place et la taille des blocs ne changent jamais.</p>
+    <ul id="designRows"></ul>
+    <div class="swatches" id="swatches" aria-label="Palette de cette page"></div>
+    <p style="margin:0;font-size:13px;opacity:.85">Toujours joyeux : couleurs vives sur fond clair, et le texte prend l’encre la plus lisible sur chaque couleur.</p>
+  </div>
+</div>
 <script>
 (() => {
 "use strict";
@@ -256,7 +285,7 @@ function rollMet(){
   log.push({die:"D6",v:mes,txt:`<strong>${mes} mesure${mes>1?"s":""}</strong>`});
   const dv=d(6), div=dv<=3?"binaire":"ternaire";
   log.push({die:"D6",v:dv,txt:`division <strong>${div}</strong>`});
-  S.met={n,mes,div,groups:groupsFor(n,div),log};
+  S.met={n,mes,div,a,dv,groups:groupsFor(n,div),log};
 }
 function groupsFor(n,div){
   if(div==="binaire"){ const g=Array(Math.floor(n/2)).fill(2); if(n%2){g[g.length-1]=3;} return g; }
@@ -276,7 +305,7 @@ function rollTon(){
   let kind="maj";
   if(mode==="min"){ const p=d(2); kind=p===1?"nat":"harm"; log.push({die:"Pièce",v:p===1?"pile":"face",txt:`mineur <strong>${kind==="nat"?"naturel":"harmonique"}</strong>`}); }
   const tonic=TONICS[mode][alt][count];
-  S.ton={alt,count,mode,kind,tonic,log};
+  S.ton={alt,count,mode,kind,tonic,dice:[a,b,c],log};
 }
 function rollDeg(){
   const log=[];
@@ -380,7 +409,35 @@ function rollDrums(){
 let scale=[], chords={};
 function computeChords(){ scale=buildScale(S.ton.tonic,S.ton.kind); chords={}; for(let i=0;i<7;i++) chords[i]=triad(scale,i); }
 function keyNameFr(){ const t=parseNote(S.ton.tonic); return FR[LET[t.l]]+(ACC_FR[t.a]||"")+" "+(S.ton.mode==="maj"?"majeur":"mineur"); }
-function dieChip(e){ const rej=(e.rej&&e.rej.length)?e.rej.map(x=>`<s>${x}</s>`).join(""):""; return `<span class="die">${e.die} ${rej}<b>${e.v}</b></span>`; }
+let HUES=[15,135,225];
+function dieSvg(kind,value,hue,size){
+  const hs=(s,l,a)=>`hsl(${hue} ${s}% ${l}%${a?" / "+a:""})`;
+  const c={top:hs(90,88),light:hs(88,78),mid:hs(85,66),dark:hs(75,54),deep:hs(65,44),edge:hs(45,18,.35),ink:hs(45,12)};
+  const P=(pts,f)=>`<polygon points="${pts}" fill="${f}" stroke="${c.edge}" stroke-width="1.5" stroke-linejoin="round"/>`;
+  let body="", pos=null; const label=String(value);
+  if(kind==="d4"){ body=P("46,8 96,72 84,88",c.dark)+P("46,8 84,88 8,88",c.light); pos=[46,66,26]; }
+  else if(kind==="d6"){
+    body=P("50,8 88,28 50,48 12,28",c.top)+P("12,28 50,48 50,92 12,72",c.dark)+P("50,48 88,28 88,72 50,92",c.light);
+    const n=Math.min(6,Math.max(1,parseInt(label,10)||1)); const F={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+    let dots=""; F[n].forEach(i=>{ dots+=`<circle cx="${(i%3-1)*10}" cy="${(Math.floor(i/3)-1)*11}" r="4.4" fill="${c.ink}"/>`; });
+    body+=`<g transform="translate(69 60) skewY(-27.8)">${dots}</g>`;
+  }
+  else if(kind==="d8"){ body=P("8,42 50,96 22,66",c.deep)+P("92,42 78,66 50,96",c.deep)+P("22,66 50,96 78,66",c.dark)+P("50,4 8,42 22,66",c.mid)+P("50,4 78,66 92,42",c.dark)+P("50,4 22,66 78,66",c.light); pos=[50,46,24]; }
+  else if(kind==="d10"||kind==="d100"){ body=P("5,50 12,64 50,96",c.deep)+P("95,50 50,96 88,64",c.deep)+P("12,64 28,56 50,67 50,96",c.dark)+P("88,64 50,96 50,67 72,56",c.deep)+P("50,4 5,50 12,64 28,56",c.mid)+P("50,4 72,56 88,64 95,50",c.dark)+P("50,4 28,56 50,67 72,56",c.light); pos=[50,44,22]; }
+  else if(kind==="coin"){ body=`<circle cx="50" cy="54" r="40" fill="${c.dark}" stroke="${c.edge}" stroke-width="1.5"/><circle cx="50" cy="50" r="40" fill="${c.light}" stroke="${c.edge}" stroke-width="1.5"/><circle cx="50" cy="50" r="31" fill="none" stroke="${c.mid}" stroke-width="3"/>`; pos=[50,50,22]; }
+  else { body=P("50,4 10,27 50,22",c.mid)+P("50,4 50,22 90,27",c.top)+P("90,27 50,22 78,68",c.mid)+P("90,27 78,68 90,73",c.dark)+P("90,73 78,68 50,96",c.deep)+P("50,96 78,68 22,68",c.dark)+P("50,96 22,68 10,73",c.deep)+P("10,73 22,68 10,27",c.dark)+P("10,27 22,68 50,22",c.mid)+P("50,22 22,68 78,68",c.light); pos=[50,54,24]; }
+  let num="";
+  if(pos){ const units=label.length>2?pos[2]*.6:label.length>1?pos[2]*.8:pos[2]; num=`<text x="${pos[0]}" y="${pos[1]}" text-anchor="middle" dominant-baseline="central" font-family="system-ui,sans-serif" font-weight="800" font-size="${units}" fill="${c.ink}">${label}</text>`; }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" style="flex:none;filter:drop-shadow(0 4px 4px rgba(0,0,0,.18))">${body}${num}</svg>`;
+}
+let dieHueIdx=0;
+function dieChip(e){
+  const rej=(e.rej&&e.rej.length)?e.rej.map(x=>`<s>${x}</s>`).join(""):"";
+  const kinds={D4:"d4",D6:"d6",D8:"d8",D10:"d10",D20:"d20",D100:"d100","Pièce":"coin"};
+  const k=kinds[e.die], single=(typeof e.v==="number")||(/^\d+$/.test(String(e.v)))||(k==="coin");
+  if(k && single){ const hue=HUES[(dieHueIdx++)%3]; const lbl=k==="coin"?(e.v==="pile"?"P":"F"):e.v; return `<span class="dice" title="${e.die} : ${e.v}">${rej}${dieSvg(k,lbl,hue,30)}</span>`; }
+  return `<span class="chip">${e.die} ${rej}<b>${e.v}</b></span>`;
+}
 function noteName(i){ return scale[mod7(i)].name; }
 function melMidi(i){ const tpc=scale[0].pc; const base=60+tpc; const oct=Math.floor(i/7); return base+12*oct+((scale[mod7(i)].pc-tpc+12)%12); }
 function drumSvg(m){
@@ -390,8 +447,36 @@ function drumSvg(m){
 }
 function renderLog(id,entries){ $(id).innerHTML=entries.map(e=>`<li>${dieChip(e)}<span class="txt">${e.txt}</span></li>`).join(""); }
 
+const DISPLAY=[["Shrikhand","'Shrikhand', cursive",400,1],["Bricolage Grotesque","'Bricolage Grotesque', sans-serif",800,1.05],["Fraunces","'Fraunces', serif",900,1.02],["Lilita One","'Lilita One', sans-serif",400,1.08],["Bungee","'Bungee', sans-serif",400,.78],["Unbounded","'Unbounded', sans-serif",800,.76],["Baloo 2","'Baloo 2', sans-serif",800,1.05],["Chewy","'Chewy', cursive",400,1.05],["Righteous","'Righteous', sans-serif",400,.95],["Bagel Fat One","'Bagel Fat One', sans-serif",400,.9]];
+const BODY=[["DM Sans","'DM Sans', sans-serif"],["Nunito","'Nunito', sans-serif"],["Outfit","'Outfit', sans-serif"],["Figtree","'Figtree', sans-serif"],["Work Sans","'Work Sans', sans-serif"],["Space Grotesk","'Space Grotesk', sans-serif"]];
+const RADII=[0,6,12,20,28,40];
+function lum(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l), f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))), lin=c=>c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4); return .2126*lin(f(0))+.7152*lin(f(8))+.0722*lin(f(4)); }
+const contrast=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+let THEME=null;
+function applyTheme(){
+  const M=S.met, Tn=S.ton;
+  const fifths=Tn.alt==="♭"?-Tn.count:Tn.count;
+  const root=(15+fifths*30+360)%360;
+  const iv=Tn.mode==="min"?[0,3,7]:[0,4,7];
+  const hues=iv.map(x=>(root+x*30)%360); HUES=hues;
+  const disp=DISPLAY[M.a-1], body=BODY[M.mes-1], rad=RADII[M.dv-1];
+  const lift=h=>h>=190&&h<=300?8:0, accL=[64,72,62];
+  const acc=hues.map((h,i)=>({h,s:88,l:accL[i]+lift(h)}));
+  const hsl=c=>`hsl(${c.h} ${c.s}% ${c.l}%)`;
+  const inkC={h:root,s:45,l:10}, inkL=lum(inkC.h,inkC.s,inkC.l), ink=hsl(inkC);
+  const pickInk=c=>{ const L=lum(c.h,c.s,c.l); return contrast(L,inkL)>=contrast(L,1)?ink:"#ffffff"; };
+  const v={"--bg":hsl({h:root,s:80,l:95}),"--surface":hsl({h:root,s:70,l:99}),"--ink":ink,
+    "--a1":hsl(acc[0]),"--a2":hsl(acc[1]),"--a3":hsl(acc[2]),"--a1-ink":pickInk(acc[0]),"--a2-ink":pickInk(acc[1]),"--a3-ink":pickInk(acc[2]),
+    "--deep":`hsl(${hues[0]} 75% 36%)`,"--tint":`hsl(${hues[0]} 90% 90%)`,
+    "--display":disp[1],"--display-w":disp[2],"--body":body[1],
+    "--hero-size":Math.round(76*disp[3])+"px","--chord-size":Math.round(24*disp[3])+"px",
+    "--radius":rad+"px","--radius-xs":Math.round(rad*.4)+"px","--radius-btn":(rad>=20?999:rad)+"px"};
+  const r=document.documentElement.style; Object.entries(v).forEach(([k,val])=>r.setProperty(k,val));
+  const tints=hues.map(h=>`hsl(${h} 90% ${88+lift(h)/2}%)`), tints2=hues.map(h=>`hsl(${h} 85% ${80+lift(h)/2}%)`);
+  THEME={root,hues,disp,body,rad,v,tints,tints2};
+}
 function render(){
-  computeChords();
+  computeChords(); applyTheme(); dieHueIdx=0;
   const M=S.met, Tn=S.ton, D=S.deg, G=S.grid;
   renderLog("log-met",M.log);
   renderLog("log-ton",Tn.log);
@@ -409,21 +494,44 @@ function render(){
   renderLog("log-drums",S.drums.log);
   $("hatLbl").textContent=S.drums.ride?"Ride":"Charleston";
 
-  $("summary").innerHTML=[
-    {k:"Mesure",v:`${M.n}/8`,s:`${M.div} · ${M.groups.join("+")}`},
-    {k:"Longueur",v:`${M.mes} mesure${M.mes>1?"s":""}`,s:`${M.mes*2} demi-mesures, en boucle`},
-    {k:"Tonalité",v:keyNameFr(),s:(Tn.count?`${Tn.count} ${Tn.alt}`:"sans altération")+(Tn.mode==="min"?` · mineur ${Tn.kind==="nat"?"naturel":"harmonique"}`:"")},
-    {k:"Accords",v:ordered.map(x=>chords[x.deg].name).join(" "),s:"du plus au moins fréquent"}
-  ].map(t=>`<div class="tile"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="s">${t.s}</div></div>`).join("");
+  const Hh=THEME.hues;
+  const keyFull=keyNameFr()+(Tn.mode==="min"?(Tn.kind==="nat"?" naturel":" harmonique"):"");
+  const rows=[
+    {k:"d10",v:M.a,h:Hh[0],l:"Métrique",r:`${M.n}/8`,d:"5 + D10 croches par mesure"},
+    {k:"d6",v:M.mes,h:Hh[1],l:"Mesures",r:String(M.mes),d:"D6, un accord par demi-mesure, en boucle"},
+    {k:"d6",v:M.dv,h:Hh[2],l:"Division",r:M.div,d:"groupes de croches : "+M.groups.join("+")},
+    {k:"d8",v:Tn.dice[1],h:Hh[0],l:"Tonalité",r:keyFull,d:(Tn.count?`${Tn.count} ${Tn.alt}`:"aucune altération")+` · dés : ${Tn.dice.join(", ")}`},
+    {k:"d6",v:D.nb,h:Hh[1],l:"Accords",r:ordered.map(x=>chords[x.deg].name).join(" "),d:"du plus au moins fréquent · "+ordered.map(x=>chords[x.deg].rn).join(" ")},
+    {k:"d6",v:S.mel.span===5?2:S.mel.span===7?4:6,h:Hh[2],l:"Mélodie et batterie",r:`ambitus ${S.mel.span===5?"sixte":S.mel.span===7?"octave":"dixième"}, ${S.drums.ride?"ride":"charleston"}`,d:`${S.mel.notes.length} notes · densité ${S.drums.dens==="croches"?"croches":S.drums.dens==="doubles"?"doubles croches":"par groupe"}${S.drums.fill?" · break en fin":""}`}
+  ];
+  $("pieceRows").innerHTML=rows.map(x=>`<li>${dieSvg(x.k,x.v,x.h,48)}<span class="t"><b>${x.l} : ${x.r}</b><small>${x.d}</small></span></li>`).join("");
+  $("logoDie").innerHTML=dieSvg("d6",M.mes,Hh[0],48);
+  $("decoBig").innerHTML=dieSvg("d10",M.a,Hh[1],124);
+  $("decoSmall").innerHTML=dieSvg("d8",Tn.dice[1],Hh[2],70);
+  $("grille-titre").textContent="La grille, en "+keyFull;
+  $("gridSub").textContent=`${M.n}/8 (${M.groups.join("+")}) · un accord par demi-mesure · en boucle`;
+  $("footKey").textContent=`${keyFull} · ${M.n}/8 · ${M.mes} mesure${M.mes>1?"s":""}`;
+  const T=THEME;
+  $("designRows").innerHTML=[
+    {k:"d8",v:Tn.dice[0],h:Hh[0],m:"D8 bémols ou dièses : "+(Tn.alt==="♭"?"bémols":"dièses"),d:"sens de rotation de la couleur sur le cercle (comme sur le cycle des quintes)"},
+    {k:"d8",v:Tn.dice[1],h:Hh[1],m:"D8 altérations : "+(Tn.count===0?"aucune":Tn.count),d:`couleur de base : 30° de plus par altération, Do majeur est le point de départ (teinte ${T.root}°)`},
+    {k:"d8",v:Tn.dice[2],h:Hh[2],m:"D8 mode : "+(Tn.mode==="min"?"mineur":"majeur"),d:Tn.mode==="min"?"palette en accord mineur : 3 couleurs espacées comme la-do-mi":"palette en accord majeur : 3 couleurs espacées comme do-mi-sol"},
+    {k:"d10",v:M.a,h:Hh[0],m:`D10 métrique : ${M.n} croches`,d:"police des titres, une par face sur 10 : "+T.disp[0]},
+    {k:"d6",v:M.mes,h:Hh[1],m:"D6 mesures : "+M.mes,d:"police du texte, une par face sur 6 : "+T.body[0]},
+    {k:"d6",v:M.dv,h:Hh[2],m:"D6 division : "+M.div,d:`forme des blocs : du plus anguleux au plus arrondi (${T.rad} px)`}
+  ].map(x=>`<li>${dieSvg(x.k,x.v,x.h,56)}<span class="t"><b>${x.m}</b><span class="d">→ ${x.d}</span></span></li>`).join("");
+  $("swatches").innerHTML=[["Fond","--bg"],["Couleur 1","--a1"],["Couleur 2","--a2"],["Couleur 3","--a3"],["Encre","--ink"]].map(([n,k])=>`<span title="${n}" style="background:${T.v[k]}"></span>`).join("");
 
   // Grille
+  const order=D.list.map(x=>x.deg).sort((a,b)=>a-b);
+  const degColor=d=>{ const k=order.indexOf(d); return k<3?THEME.tints[k]:THEME.tints2[k-3]; };
   const starts=new Set(); let acc=0; M.groups.forEach(g=>{starts.add(acc); acc+=g;});
   let html="";
   for(let m=0;m<M.mes;m++){
     let ticks=""; for(let s=0;s<M.n*2;s++){ const c=s/2; const cls= s===0?"d":(s%2===0&&starts.has(c)?"g":""); ticks+=`<i class="${cls}" data-t="${s}"></i>`; }
-    html+=`<div class="measure"><div class="measure-top"><span>m.${m+1}</span><span>${M.n}/8</span></div><div class="halves">`;
+    html+=`<div class="measure"><div class="measure-top"><span>Mesure ${m+1}</span><span>${M.n}/8</span></div><div class="halves">`;
     for(let h=0;h<2;h++){ const c=G.cells[m*2+h], ch=chords[c.deg];
-      html+=`<div class="half" data-cell="${m*2+h}"><span class="ch">${ch.name}</span><span class="rn">${ch.rn}</span><span class="roll">${G.die===null?"":"D"+G.die+" "+c.v}</span></div>`; }
+      html+=`<div class="half" data-cell="${m*2+h}" style="background:${degColor(c.deg)}"><span class="rn">${ch.rn}</span><span class="ch">${ch.name}</span></div>`; }
     const Mel=S.mel, W=M.n*2*10, H=(Mel.span+1)*6;
     const mn=Mel.notes.filter(x=>x.m===m);
     const rects=mn.map(x=>`<rect class="n" x="${x.start*10+.5}" y="${(Mel.hi-x.idx)*6+.5}" width="${x.dur*10-1}" height="5" rx="1"/>`).join("");
@@ -598,6 +706,14 @@ $("dl").addEventListener("click",async()=>{
   try{ await downloads.save({filename:base+".zip",data:blob}); $("status").textContent="Fichier enregistré : le .mid est dans le .zip."; }
   catch(e){ $("status").textContent= e&&e.code==="declined"?"Téléchargement annulé.":"Le téléchargement n’est pas disponible ici."; }
 });
+
+const modal=$("modal"); let lastFocus=null;
+function openModal(){ lastFocus=document.activeElement; modal.hidden=false; $("closeDesign").focus(); }
+function closeModal(){ modal.hidden=true; if(lastFocus) lastFocus.focus(); }
+$("openDesign").addEventListener("click",openModal);
+$("closeDesign").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{ if(e.target===modal) closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!modal.hidden) closeModal(); });
 
 reroll("all");
 })();
