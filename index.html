@@ -25,6 +25,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
+html{overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);padding:32px clamp(16px,3vw,32px) 24px}
 a{color:inherit} a:hover{opacity:.78}
 button,input{font:inherit;color:inherit}
@@ -116,11 +117,12 @@ input[type=checkbox]{accent-color:var(--deep);width:16px;height:16px}
 .section-head h3{font-size:19px}
 .section-head h3 span{font-family:var(--mono);font-weight:400;font-size:13px;opacity:.6;margin-right:6px}
 .rolls{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.rolls li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;font-size:14px}
+.rolls li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:14px;min-width:0}
+.rolls .txt{flex:1 1 140px;min-width:0}
 .rolls .txt{color:var(--muted)} .rolls .txt strong{color:var(--ink)}
 .dice{display:inline-flex;align-items:center;gap:4px}
 .dice s{font-family:var(--mono);font-size:12px;opacity:.55}
-.chip{font-family:var(--mono);font-size:12px;background:var(--tint);color:var(--ink);border-radius:var(--radius-xs);padding:2px 8px;white-space:nowrap}
+.chip{font-family:var(--mono);font-size:12px;background:var(--tint);color:var(--ink);border-radius:var(--radius-xs);padding:2px 8px;white-space:normal;overflow-wrap:anywhere;max-width:100%}
 .chip b{font-weight:600}
 
 footer{min-height:72px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;font-size:14px;border-top:2px solid var(--ink)}
