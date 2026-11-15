@@ -114,6 +114,11 @@ header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
 .roll-svg rect.n{fill:var(--accent)}
 .roll-svg line{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
 .mel{font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 10px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.drum-svg{display:block;width:calc(100% - 20px);height:34px;margin:0 10px 8px}
+.drum-svg .k{fill:var(--ink)} .drum-svg .sn{fill:var(--accent)} .drum-svg .hh{fill:var(--muted)} .drum-svg .cy{fill:var(--die)}
+.drum-svg line{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
 .rules{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:grid;gap:3px;max-width:75ch}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
 .status{font-size:13px;color:var(--muted);min-height:1.5em}
@@ -156,6 +161,10 @@ header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
       <div class="section-head"><h3><span>V</span>Mélodie</h3><button class="btn small" data-reroll="mel" type="button">Relancer</button></div>
       <ul class="rolls" id="log-mel"></ul>
     </div>
+    <div class="section">
+      <div class="section-head"><h3><span>VI</span>Batterie</h3><button class="btn small" data-reroll="drums" type="button">Relancer</button></div>
+      <ul class="rolls" id="log-drums"></ul>
+    </div>
   </aside>
 
   <main class="result">
@@ -167,13 +176,15 @@ header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
         <div class="player">
           <button class="btn primary" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
           <span class="tempo"><label for="tempo">Tempo (croche)</label><input id="tempo" type="range" min="120" max="400" step="5" value="240"><output id="tempoOut" for="tempo">240</output></span>
-          <label for="optClick"><input type="checkbox" id="optClick" checked> Métronome</label>
+          <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
+          <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
           <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
           <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
           <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
         </div>
       </div>
       <div class="grid" id="grid"></div>
+      <div class="legend" aria-label="Légende de la batterie"><span><i style="background:var(--die)"></i>Cymbale crash</span><span><i style="background:var(--muted)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--accent)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
       <div class="status" id="status" aria-live="polite"></div>
     </section>
 
@@ -191,6 +202,8 @@ header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
         <li>Grille : le degré le plus probable reçoit n chances, le suivant n − 1… Le dé couvre le total : D4 (relance du 4), D6, D10, D20 (relance au-delà de 15). Pour 21 : D100, de 1 à 84 ramené de 1 à 21, de 85 à 100 relancé.</li>
         <li>Mélodie (règles provisoires) : D6 pour l’ambitus (1–2 sixte, 3–4 octave, 5–6 dixième). Rythme : un D6 par groupe de croches, dans la table du groupe de 2 (noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche) ou du groupe de 3 (noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches).</li>
         <li>Hauteurs : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche. Les autres : D8 (1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche). Hors ambitus, le mouvement s’inverse. La dernière note de la grille devient la fondamentale de son accord.</li>
+        <li>Batterie : D6 pour la cymbale de rythme (1–4 charleston, 5–6 ride), D6 pour sa densité (1–2 croches, 3–4 doubles croches, 5–6 un coup par groupe), D6 pour le break de fin de grille (5–6 roulement de caisse claire sur le dernier groupe).</li>
+        <li>Grosse caisse sur le 1ᵉʳ temps et à chaque changement de demi-mesure. Sur les autres groupes de croches, un D6 : 1–2 grosse caisse, 3–5 caisse claire, 6 les deux. Crash au début de la grille, et D6 5–6 quand l’accord change. Charleston ouvert sur la dernière croche de la mesure au D6 6.</li>
         <li>Un accord par demi-mesure (une mesure de 7 croches = 2 × 7 doubles croches). La grille tourne en boucle.</li>
       </ol>
     </section>
@@ -233,7 +246,7 @@ function triad(scale,i){
 }
 
 /* ---------- État ---------- */
-const S = {met:null, ton:null, deg:null, grid:null, mel:null};
+const S = {met:null, ton:null, deg:null, grid:null, mel:null, drums:null};
 
 function rollMet(){
   const log=[];
@@ -332,6 +345,37 @@ function rollMel(){
   S.mel={span,lo,hi,notes,log};
 }
 
+const GM={kick:36,snare:38,hhc:42,hho:46,ride:51,crash:49};
+function rollDrums(){
+  const log=[], M=S.met, n=M.n, G=S.grid;
+  const r1=d(6), ride=r1>=5; log.push({die:"D6",v:r1,txt:`cymbale de rythme : <strong>${ride?"ride":"charleston"}</strong>`});
+  const r2=d(6), dens=r2<=2?"croches":r2<=4?"doubles":"groupes"; log.push({die:"D6",v:r2,txt:`densité : <strong>${dens==="croches"?"croches":dens==="doubles"?"doubles croches":"un coup par groupe"}</strong>`});
+  const r3=d(6), fill=r3>=5; log.push({die:"D6",v:r3,txt:fill?"<strong>break</strong> de caisse claire en fin de grille":"pas de break"});
+  const hits=[]; const add=(m,st,inst,vel)=>{ if(!hits.some(h=>h.m===m&&h.s===st&&h.inst===inst)) hits.push({m,s:st,inst,vel}); };
+  const starts=[]; let acc=0; M.groups.forEach(g=>{ starts.push(acc); acc+=g; });
+  for(let m=0;m<M.mes;m++){
+    const rr=[], extra=[];
+    const fillFrom = (fill&&m===M.mes-1) ? starts[starts.length-1]*2 : Infinity;
+    starts.forEach((c,gi)=>{ const st=2*c; if(st>=fillFrom) return;
+      if(gi===0){ add(m,st,"kick",110); }
+      else { const r=d(6); rr.push(r); if(r<=2||r===6) add(m,st,"kick",95); if(r>=3) add(m,st,"snare",100); } });
+    if(n<fillFrom) add(m,n,"kick",100);
+    [0,1].forEach(h=>{ const cell=m*2+h, st=h?n:0; if(st>=fillFrom) return;
+      if(cell===0){ add(m,0,"crash",110); return; }
+      if(G.cells[cell].deg!==G.cells[cell-1].deg){ const r=d(6); extra.push(`${h?"½":"1"}:${r}`); if(r>=5) add(m,st,"crash",100); } });
+    const hat=ride?"ride":"hhc";
+    for(let st=0;st<2*n&&st<fillFrom;st++){
+      const isGroup=st%2===0&&starts.includes(st/2);
+      const on = dens==="doubles" || (dens==="croches"&&st%2===0) || (dens==="groupes"&&isGroup);
+      if(on) add(m,st,hat,isGroup?95:(st%2?55:75));
+    }
+    if(!ride && dens!=="groupes" && 2*n-2<fillFrom){ const r=d(6); extra.push(`ouv:${r}`); if(r===6){ const i=hits.findIndex(h=>h.m===m&&h.s===2*n-2&&h.inst==="hhc"); if(i>=0) hits.splice(i,1); add(m,2*n-2,"hho",85); } }
+    if(fillFrom<Infinity){ for(let st=fillFrom, k=0; st<2*n; st++, k++) add(m,st,"snare",60+Math.min(60,k*8)); add(m,fillFrom,"kick",100); }
+    log.push({die:"D6",v:rr.length?rr.join("·"):"—",txt:`m.${m+1} groupes${extra.length?` · crash/ouvert ${extra.join(" ")}`:""}`});
+  }
+  S.drums={ride,dens,fill,hits,log};
+}
+
 /* ---------- Rendu ---------- */
 let scale=[], chords={};
 function computeChords(){ scale=buildScale(S.ton.tonic,S.ton.kind); chords={}; for(let i=0;i<7;i++) chords[i]=triad(scale,i); }
@@ -339,6 +383,11 @@ function keyNameFr(){ const t=parseNote(S.ton.tonic); return FR[LET[t.l]]+(ACC_F
 function dieChip(e){ const rej=(e.rej&&e.rej.length)?e.rej.map(x=>`<s>${x}</s>`).join(""):""; return `<span class="die">${e.die} ${rej}<b>${e.v}</b></span>`; }
 function noteName(i){ return scale[mod7(i)].name; }
 function melMidi(i){ const tpc=scale[0].pc; const base=60+tpc; const oct=Math.floor(i/7); return base+12*oct+((scale[mod7(i)].pc-tpc+12)%12); }
+function drumSvg(m){
+  const n=S.met.n, W=n*2*10, rows={crash:0,hhc:1,hho:1,ride:1,snare:2,kick:3}, cls={crash:"cy",hhc:"hh",hho:"hh",ride:"hh",snare:"sn",kick:"k"};
+  const r=S.drums.hits.filter(h=>h.m===m).map(h=>`<rect class="${cls[h.inst]}" x="${h.s*10+1.5}" y="${rows[h.inst]*8+1}" width="${h.inst==="hho"?14:7}" height="6" rx="1.5" opacity="${(0.35+h.vel/180).toFixed(2)}"/>`).join("");
+  return `<svg class="drum-svg" viewBox="0 0 ${W} 32" preserveAspectRatio="none" role="img" aria-label="Batterie mesure ${m+1}"><line x1="${W/2}" y1="0" x2="${W/2}" y2="32"/>${r}</svg>`;
+}
 function renderLog(id,entries){ $(id).innerHTML=entries.map(e=>`<li>${dieChip(e)}<span class="txt">${e.txt}</span></li>`).join(""); }
 
 function render(){
@@ -357,6 +406,8 @@ function render(){
   G.cells.forEach((c,i)=>{ if(G.die===null)return; gl.push({die:dieLbl,v:c.v,rej:c.rej,txt:`m.${Math.floor(i/2)+1} ${i%2?"2ᵉ":"1ʳᵉ"} moitié → <strong>${chords[c.deg].name}</strong>${G.die===100?` (case ${c.face})`:""}`}); });
   renderLog("log-grid",gl);
   renderLog("log-mel",S.mel.log);
+  renderLog("log-drums",S.drums.log);
+  $("hatLbl").textContent=S.drums.ride?"Ride":"Charleston";
 
   $("summary").innerHTML=[
     {k:"Mesure",v:`${M.n}/8`,s:`${M.div} · ${M.groups.join("+")}`},
@@ -377,7 +428,7 @@ function render(){
     const mn=Mel.notes.filter(x=>x.m===m);
     const rects=mn.map(x=>`<rect class="n" x="${x.start*10+.5}" y="${(Mel.hi-x.idx)*6+.5}" width="${x.dur*10-1}" height="5" rx="1"/>`).join("");
     const names=[0,1].map(h=>mn.filter(x=>x.half===h).map(x=>noteName(x.idx)).join(" ")||"—");
-    html+=`</div><svg class="roll-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Mélodie mesure ${m+1}"><line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}"/>${rects}</svg><div class="mel"><span>${names[0]}</span><span>${names[1]}</span></div><div class="ticks" data-m="${m}">${ticks}</div></div>`;
+    html+=`</div><svg class="roll-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Mélodie mesure ${m+1}"><line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}"/>${rects}</svg><div class="mel"><span>${names[0]}</span><span>${names[1]}</span></div>${drumSvg(m)}<div class="ticks" data-m="${m}">${ticks}</div></div>`;
   }
   $("grid").innerHTML=html;
 
@@ -420,6 +471,7 @@ function buildMidi(){
     let acc=0; M.groups.forEach(g=>{ const t0=m*mLen+acc*CRO; const cell=m*2+(acc*2<M.n?0:1); const n=bassNote(chords[G.cells[cell].deg].pcs[0]);
       ev.push({t:t0,o:1,b:[0x91,n,90]}); ev.push({t:t0+g*CRO-10,o:0,b:[0x81,n,0]}); acc+=g; });
   }
+  S.drums.hits.forEach(h=>{ const t0=h.m*mLen+h.s*SUB; ev.push({t:t0,o:1,b:[0x99,GM[h.inst],h.vel]}); ev.push({t:t0+60,o:0,b:[0x89,GM[h.inst],0]}); });
   S.mel.notes.forEach(x=>{ const t0=x.m*mLen+x.start*SUB, nn=melMidi(x.idx); ev.push({t:t0,o:1,b:[0x92,nn,96]}); ev.push({t:t0+x.dur*SUB-10,o:0,b:[0x82,nn,0]}); });
   ev.sort((a,b)=>a.t-b.t||a.o-b.o);
   const trk=[]; const name=[...new TextEncoder().encode("Grille aleatoire")];
@@ -456,6 +508,21 @@ function tone(freq,t,dur,{type="triangle",gain=.12,attack=.02,release=.15,cutoff
   g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+attack); g.gain.setValueAtTime(gain,t+Math.max(attack,dur-release)); g.gain.linearRampToValueAtTime(0,t+dur);
   o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.02);
 }
+let noiseBuf=null;
+function noise(t,dur,{hp=6000,bp=0,gain=.2,decay=dur}={}){
+  if(!noiseBuf){ noiseBuf=ctx.createBuffer(1,ctx.sampleRate*1.5,ctx.sampleRate); const ch=noiseBuf.getChannelData(0); for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; }
+  const src=ctx.createBufferSource(); src.buffer=noiseBuf; const f=ctx.createBiquadFilter(); f.type=bp?"bandpass":"highpass"; f.frequency.value=bp||hp; const g=ctx.createGain();
+  g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.001,t+decay); src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t+dur+.05);
+}
+function drum(inst,t,vel){
+  const v=vel/127;
+  if(inst==="kick"){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(42,t+.13); g.gain.setValueAtTime(.95*v,t); g.gain.exponentialRampToValueAtTime(.001,t+.32); o.connect(g); g.connect(master); o.start(t); o.stop(t+.35); }
+  else if(inst==="snare"){ noise(t,.18,{hp:1400,gain:.38*v,decay:.16}); tone(185,t,.09,{type:"triangle",gain:.22*v,attack:.001,release:.07}); }
+  else if(inst==="hhc"){ noise(t,.05,{hp:7500,gain:.16*v,decay:.04}); }
+  else if(inst==="hho"){ noise(t,.32,{hp:7000,gain:.15*v,decay:.3}); }
+  else if(inst==="ride"){ noise(t,.45,{bp:5200,gain:.1*v,decay:.4}); tone(3100,t,.25,{type:"sine",gain:.025*v,attack:.001,release:.2,cutoff:8000}); }
+  else if(inst==="crash"){ noise(t,1.4,{hp:3800,gain:.26*v,decay:1.3}); }
+}
 function click(t,level){ const f=[0,900,1250,1700][level], v=[0,.05,.1,.16][level]; tone(f,t,.035,{type:"sine",gain:v,attack:.001,release:.03,cutoff:8000}); }
 function subDur(){ return 60/(Number($("tempo").value)*2); }
 function schedule(s,m,t){
@@ -464,6 +531,7 @@ function schedule(s,m,t){
   if(s%2===0){ const c=s/2; let acc=0, isStart=false, g=0; for(const gg of M.groups){ if(acc===c){isStart=true; g=gg;} acc+=gg; }
     if($("optClick").checked) click(t, c===0?3:(isStart?2:1));
     if(isStart&&$("optBass").checked){ tone(mtof(bassNote(ch.pcs[0])),t,g*2*sd*.95,{type:"triangle",gain:.22,attack:.005,release:.08,cutoff:900}); } }
+  if($("optDrums").checked){ S.drums.hits.forEach(h=>{ if(h.m===m&&h.s===s) drum(h.inst,t,h.vel); }); }
   if($("optMel").checked){ S.mel.notes.forEach(x=>{ if(x.m===m&&x.start===s){ const f=mtof(melMidi(x.idx)); tone(f,t,x.dur*sd*.95,{type:"triangle",gain:.16,attack:.008,release:.06,cutoff:3200}); tone(f*2,t,x.dur*sd*.9,{type:"sine",gain:.03,attack:.008,release:.06}); } }); }
   if($("optArp").checked){ const v=voicing(ch.pcs); tone(mtof(v[s%3]+12),t,sd*.9,{type:"square",gain:.025,attack:.003,release:.05,cutoff:2600}); }
   queue.push({t,cell,s,m});
@@ -498,12 +566,13 @@ async function togglePlay(){
 
 /* ---------- Actions ---------- */
 function reroll(what){
-  if(what==="all"){ rollMet(); rollTon(); rollDeg(); rollGrid(); rollMel(); }
-  else if(what==="met"){ rollMet(); rollGrid(); rollMel(); }
+  if(what==="all"){ rollMet(); rollTon(); rollDeg(); rollGrid(); rollMel(); rollDrums(); }
+  else if(what==="met"){ rollMet(); rollGrid(); rollMel(); rollDrums(); }
   else if(what==="ton"){ rollTon(); }
-  else if(what==="deg"){ rollDeg(); rollGrid(); rollMel(); }
-  else if(what==="grid"){ rollGrid(); rollMel(); }
+  else if(what==="deg"){ rollDeg(); rollGrid(); rollMel(); rollDrums(); }
+  else if(what==="grid"){ rollGrid(); rollMel(); rollDrums(); }
   else if(what==="mel"){ rollMel(); }
+  else if(what==="drums"){ rollDrums(); }
   queue=[]; render();
   $("status").textContent="";
 }
