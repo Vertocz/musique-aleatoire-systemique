@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Musique aléatoire systémique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout : barre de commande en haut, à gauche le carnet des tirages, à droite le résultat (tonalité, grille, poids). */
+  --bg:#eef0ec;
+  --surface:#fbfcfa;
+  --ink:#18202b;
+  --muted:#5b6573;
+  --line:#d3d8d0;
+  --accent:#2445c9;
+  --accent-soft:#dfe5fb;
+  --die:#b8730a;
+  --die-soft:#f6ead3;
+  --display:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --surface:#1a2029; --ink:#e8ebef; --muted:#9aa4b2; --line:#2c3440;
+    --accent:#8ea3ff; --accent-soft:#232d4f; --die:#f0b14a; --die-soft:#3a2d14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --surface:#1a2029; --ink:#e8ebef; --muted:#9aa4b2; --line:#2c3440;
+  --accent:#8ea3ff; --accent-soft:#232d4f; --die:#f0b14a; --die-soft:#3a2d14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:20px clamp(16px,3vw,40px) 48px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-bottom:20px}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:500;display:inline-flex;gap:8px;align-items:center}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+.layout{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:20px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+
+/* Carnet de tirages */
+.section{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.section:first-of-type{border-top:0;padding-top:0}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.section-head h3{font-size:17px;font-weight:700}
+.section-head h3 span{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:6px;font-size:14px}
+.rolls{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.rolls li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;font-size:14px}
+.die{font-family:var(--mono);font-size:13px;background:var(--die-soft);color:var(--die);border-radius:6px;padding:1px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.die b{color:var(--ink);font-weight:600}
+.die s{opacity:.6;margin-right:3px}
+.rolls .txt{color:var(--muted)}
+.rolls .txt strong{color:var(--ink);font-weight:600}
+
+/* Résultat */
+.result{display:grid;gap:20px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.15;margin-top:4px}
+.tile .s{color:var(--muted);font-size:13px;margin-top:2px}
+
+.player{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.player label{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.tempo{display:inline-flex;gap:8px;align-items:center;font-size:14px}
+.tempo output{font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:3ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.measure{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.measure-top{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px;color:var(--muted);font-family:var(--mono);border-bottom:1px solid var(--line)}
+.halves{display:grid;grid-template-columns:1fr 1fr}
+.half{padding:12px 10px 8px;min-height:84px;display:grid;align-content:start;gap:2px;transition:background .08s}
+.half + .half{border-left:1px dashed var(--line)}
+.half .ch{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.1}
+.half .rn{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.half .roll{font-family:var(--mono);font-size:11px;color:var(--die)}
+.half.on{background:var(--accent-soft)}
+.half.on .ch{color:var(--accent)}
+.ticks{display:flex;gap:2px;padding:0 10px 10px}
+.ticks i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+.ticks i.g{background:var(--muted)}
+.ticks i.d{background:var(--ink)}
+.ticks i.now{background:var(--accent)}
+
+.weights{display:grid;gap:8px}
+.wrow{display:grid;grid-template-columns:70px 1fr 110px;gap:12px;align-items:center;font-size:14px}
+.wrow .name{font-family:var(--display);font-weight:700;font-size:18px}
+.wbar{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}
+.wbar span{display:block;height:100%;background:var(--accent);border-radius:6px}
+.wrow .meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+.rules{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:grid;gap:3px;max-width:75ch}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.status{font-size:13px;color:var(--muted);min-height:1.5em}
+@media (prefers-reduced-motion: reduce){.half{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Musique aléatoire systémique</h1>
+    <p>Mesure, tonalité, degrés puis grille d’accords : chaque étape est tirée aux dés et limite les choix de la suivante.</p>
+  </div>
+  <div class="bar">
+    <button class="btn primary" id="rollAll" type="button">Tout relancer</button>
+    <button class="btn" id="copy" type="button">Copier la grille</button>
+    <button class="btn" id="dl" type="button" hidden>Télécharger MIDI (.zip)</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="panel" aria-label="Tirages">
+    <div class="panel-head"><h2>Carnet des tirages</h2></div>
+    <div class="section">
+      <div class="section-head"><h3><span>I</span>Métrique</h3><button class="btn small" data-reroll="met" type="button">Relancer</button></div>
+      <ul class="rolls" id="log-met"></ul>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3><span>II</span>Tonalité</h3><button class="btn small" data-reroll="ton" type="button">Relancer</button></div>
+      <ul class="rolls" id="log-ton"></ul>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3><span>III</span>Degrés</h3><button class="btn small" data-reroll="deg" type="button">Relancer</button></div>
+      <ul class="rolls" id="log-deg"></ul>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3><span>IV</span>Grille</h3><button class="btn small" data-reroll="grid" type="button">Relancer</button></div>
+      <ul class="rolls" id="log-grid"></ul>
+    </div>
+  </aside>
+
+  <main class="result">
+    <div class="summary" id="summary"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Grille d’accords</h2>
+        <div class="player">
+          <button class="btn primary" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
+          <span class="tempo"><label for="tempo">Tempo (croche)</label><input id="tempo" type="range" min="120" max="400" step="5" value="240"><output id="tempoOut" for="tempo">240</output></span>
+          <label for="optClick"><input type="checkbox" id="optClick" checked> Métronome</label>
+          <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
+          <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Poids des accords</h2><span class="status" id="dieInfo"></span></div>
+      <div class="weights" id="weights"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Règles appliquées</h2></div>
+      <ol class="rules">
+        <li>Mesure : 5 + D10 croches. Nombre de mesures : D6. Division D6 : 1–3 binaire (croches groupées par 2), 4–6 ternaire (groupées par 3), complétées par un groupe de 3 ou de 2.</li>
+        <li>Tonalité : D8 pour ♭ (1–4) ou ♯ (5–8), D8 pour le nombre d’altérations (8 = aucune), D8 pour mineur (1–4) ou majeur (5–8). En mineur, pile ou face : mineur naturel ou harmonique.</li>
+        <li>Degrés : D6 pour leur nombre, puis un D8 par degré (8 et doublons relancés). Un D20 par degré les classe ; les égalités sont relancées.</li>
+        <li>Grille : le degré le plus probable reçoit n chances, le suivant n − 1… Le dé couvre le total : D4 (relance du 4), D6, D10, D20 (relance au-delà de 15). Pour 21 : D100, de 1 à 84 ramené de 1 à 21, de 85 à 100 relancé.</li>
+        <li>Un accord par demi-mesure (une mesure de 7 croches = 2 × 7 doubles croches). La grille tourne en boucle.</li>
+      </ol>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const d = n => 1 + Math.floor(Math.random() * n);
+function rollUntil(n, ok){ const rejected=[]; let v=d(n); while(!ok(v)){ rejected.push(v); v=d(n); } return {v, rejected}; }
+
+/* ---------- Théorie ---------- */
+const LET = "CDEFGAB", NAT = [0,2,4,5,7,9,11];
+const FR = {C:"Do",D:"Ré",E:"Mi",F:"Fa",G:"Sol",A:"La",B:"Si"};
+const SCALES = {maj:[0,2,4,5,7,9,11], nat:[0,2,3,5,7,8,10], harm:[0,2,3,5,7,8,11]};
+const TONICS = {
+  maj:{"♯":["C","G","D","A","E","B","F#","C#"], "♭":["C","F","Bb","Eb","Ab","Db","Gb","Cb"]},
+  min:{"♯":["A","E","B","F#","C#","G#","D#","A#"], "♭":["A","D","G","C","F","Bb","Eb","Ab"]}
+};
+const ACC = {"-2":"𝄫","-1":"♭","0":"","1":"♯","2":"𝄪"};
+const ACC_FR = {"-1":" bémol","0":"","1":" dièse"};
+const ROMAN = ["I","II","III","IV","V","VI","VII"];
+
+function parseNote(s){ const l=LET.indexOf(s[0]); const a=(s.slice(1).match(/#/g)||[]).length-(s.slice(1).match(/b/g)||[]).length; return {l,a,pc:(NAT[l]+a+12)%12}; }
+function buildScale(tonic, kind){
+  const t=parseNote(tonic), iv=SCALES[kind];
+  return iv.map((x,i)=>{ const l=(t.l+i)%7; const pc=(t.pc+x)%12; let a=pc-NAT[l]; if(a>6)a-=12; if(a<-6)a+=12; return {l,a,pc,name:LET[l]+ACC[a]}; });
+}
+function triad(scale,i){
+  const r=scale[i], t=scale[(i+2)%7], f=scale[(i+4)%7];
+  const th=(t.pc-r.pc+12)%12, fi=(f.pc-r.pc+12)%12;
+  let q="", rn=ROMAN[i];
+  if(th===4&&fi===7){q="";}
+  else if(th===3&&fi===7){q="m"; rn=rn.toLowerCase();}
+  else if(th===3&&fi===6){q="°"; rn=rn.toLowerCase()+"°";}
+  else if(th===4&&fi===8){q="+"; rn=rn+"+";}
+  return {name:r.name+q, rn, pcs:[r.pc,t.pc,f.pc]};
+}
+
+/* ---------- État ---------- */
+const S = {met:null, ton:null, deg:null, grid:null};
+
+function rollMet(){
+  const log=[];
+  const a=d(10), n=5+a;
+  log.push({die:"D10",v:a,txt:`5 + ${a} = <strong>${n} croches</strong> par mesure`});
+  const mes=d(6);
+  log.push({die:"D6",v:mes,txt:`<strong>${mes} mesure${mes>1?"s":""}</strong>`});
+  const dv=d(6), div=dv<=3?"binaire":"ternaire";
+  log.push({die:"D6",v:dv,txt:`division <strong>${div}</strong>`});
+  S.met={n,mes,div,groups:groupsFor(n,div),log};
+}
+function groupsFor(n,div){
+  if(div==="binaire"){ const g=Array(Math.floor(n/2)).fill(2); if(n%2){g[g.length-1]=3;} return g; }
+  const r=n%3, k=Math.floor(n/3);
+  if(r===0) return Array(k).fill(3);
+  if(r===2) return [...Array(k).fill(3),2];
+  return [...Array(k-1).fill(3),2,2];
+}
+function rollTon(){
+  const log=[];
+  const a=d(8), alt=a<=4?"♭":"♯";
+  log.push({die:"D8",v:a,txt:`altérations en <strong>${alt==="♭"?"bémols":"dièses"}</strong>`});
+  const b=d(8), count=b===8?0:b;
+  log.push({die:"D8",v:b,txt:b===8?"8 → <strong>aucune altération</strong>":`<strong>${count} ${alt}</strong>`});
+  const c=d(8), mode=c<=4?"min":"maj";
+  log.push({die:"D8",v:c,txt:`mode <strong>${mode==="maj"?"majeur":"mineur"}</strong>`});
+  let kind="maj";
+  if(mode==="min"){ const p=d(2); kind=p===1?"nat":"harm"; log.push({die:"Pièce",v:p===1?"pile":"face",txt:`mineur <strong>${kind==="nat"?"naturel":"harmonique"}</strong>`}); }
+  const tonic=TONICS[mode][alt][count];
+  S.ton={alt,count,mode,kind,tonic,log};
+}
+function rollDeg(){
+  const log=[];
+  const nb=d(6);
+  log.push({die:"D6",v:nb,txt:`<strong>${nb} degré${nb>1?"s":""}</strong> utilisé${nb>1?"s":""}`});
+  const chosen=[];
+  for(let k=0;k<nb;k++){
+    const r=rollUntil(8,v=>v!==8&&!chosen.includes(v));
+    chosen.push(r.v);
+    log.push({die:"D8",v:r.v,rej:r.rejected,degSlot:r.v-1,txt:""});
+  }
+  let scores=chosen.map(()=>d(20));
+  const first=scores.slice();
+  let guard=0, tie=false;
+  while(new Set(scores).size<scores.length && guard++<50){
+    tie=true;
+    const counts={}; scores.forEach(s=>counts[s]=(counts[s]||0)+1);
+    scores=scores.map(s=>counts[s]>1?d(20):s);
+  }
+  S.deg={nb,list:chosen.map((g,i)=>({deg:g-1,score:scores[i],first:first[i]})),tie,log};
+}
+function dieFor(T){ if(T===1)return null; if(T<=4)return 4; if(T<=6)return 6; if(T<=10)return 10; if(T<=20)return 20; return 100; }
+function rollGrid(){
+  const list=S.deg.list.slice().sort((a,b)=>a.score-b.score);
+  const n=list.length, T=n*(n+1)/2, die=dieFor(T);
+  let lo=1; const ranges=list.map((x,i)=>{ const w=i+1; const r={deg:x.deg,w,lo,hi:lo+w-1}; lo+=w; return r; });
+  const cells=[], log=[];
+  const count=S.met.mes*2;
+  for(let c=0;c<count;c++){
+    let face, rej=[], v;
+    if(die===null){ face=1; }
+    else if(die===100){ const r=rollUntil(100,x=>x<=84); rej=r.rejected; v=r.v; face=((v-1)%21)+1; }
+    else { const r=rollUntil(die,x=>x<=T); rej=r.rejected; v=r.v; face=v; }
+    const range=ranges.find(r=>face>=r.lo&&face<=r.hi);
+    cells.push({deg:range.deg,v,face,rej});
+  }
+  S.grid={T,die,ranges,cells,log};
+}
+
+/* ---------- Rendu ---------- */
+let scale=[], chords={};
+function computeChords(){ scale=buildScale(S.ton.tonic,S.ton.kind); chords={}; for(let i=0;i<7;i++) chords[i]=triad(scale,i); }
+function keyNameFr(){ const t=parseNote(S.ton.tonic); return FR[LET[t.l]]+(ACC_FR[t.a]||"")+" "+(S.ton.mode==="maj"?"majeur":"mineur"); }
+function dieChip(e){ const rej=(e.rej&&e.rej.length)?e.rej.map(x=>`<s>${x}</s>`).join(""):""; return `<span class="die">${e.die} ${rej}<b>${e.v}</b></span>`; }
+function renderLog(id,entries){ $(id).innerHTML=entries.map(e=>`<li>${dieChip(e)}<span class="txt">${e.txt}</span></li>`).join(""); }
+
+function render(){
+  computeChords();
+  const M=S.met, Tn=S.ton, D=S.deg, G=S.grid;
+  renderLog("log-met",M.log);
+  renderLog("log-ton",Tn.log);
+  // Degrés : nom d'accord recalculé selon la tonalité
+  const degEntries=D.log.map(e=> e.degSlot===undefined?e:{...e,txt:`degré <strong>${ROMAN[e.degSlot]}</strong> → <strong>${chords[e.degSlot].name}</strong>`});
+  const ordered=D.list.slice().sort((a,b)=>b.score-a.score);
+  D.list.forEach(x=>degEntries.push({die:"D20",v:x.score,rej:x.first!==x.score?[x.first]:[],txt:`fréquence de <strong>${chords[x.deg].name}</strong>`}));
+  if(D.tie) degEntries.push({die:"—",v:"",txt:"égalité au D20 : scores à égalité relancés (barrés)"});
+  renderLog("log-deg",degEntries);
+  const dieLbl=G.die===null?"aucun dé":"D"+G.die;
+  const gl=[{die:"Total",v:G.T,txt:G.die===null?"un seul accord, pas de tirage":`chances réparties sur un <strong>${dieLbl}</strong>`}];
+  G.cells.forEach((c,i)=>{ if(G.die===null)return; gl.push({die:dieLbl,v:c.v,rej:c.rej,txt:`m.${Math.floor(i/2)+1} ${i%2?"2ᵉ":"1ʳᵉ"} moitié → <strong>${chords[c.deg].name}</strong>${G.die===100?` (case ${c.face})`:""}`}); });
+  renderLog("log-grid",gl);
+
+  $("summary").innerHTML=[
+    {k:"Mesure",v:`${M.n}/8`,s:`${M.div} · ${M.groups.join("+")}`},
+    {k:"Longueur",v:`${M.mes} mesure${M.mes>1?"s":""}`,s:`${M.mes*2} demi-mesures, en boucle`},
+    {k:"Tonalité",v:keyNameFr(),s:(Tn.count?`${Tn.count} ${Tn.alt}`:"sans altération")+(Tn.mode==="min"?` · mineur ${Tn.kind==="nat"?"naturel":"harmonique"}`:"")},
+    {k:"Accords",v:ordered.map(x=>chords[x.deg].name).join(" "),s:"du plus au moins fréquent"}
+  ].map(t=>`<div class="tile"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="s">${t.s}</div></div>`).join("");
+
+  // Grille
+  const starts=new Set(); let acc=0; M.groups.forEach(g=>{starts.add(acc); acc+=g;});
+  let html="";
+  for(let m=0;m<M.mes;m++){
+    let ticks=""; for(let s=0;s<M.n*2;s++){ const c=s/2; const cls= s===0?"d":(s%2===0&&starts.has(c)?"g":""); ticks+=`<i class="${cls}" data-t="${s}"></i>`; }
+    html+=`<div class="measure"><div class="measure-top"><span>m.${m+1}</span><span>${M.n}/8</span></div><div class="halves">`;
+    for(let h=0;h<2;h++){ const c=G.cells[m*2+h], ch=chords[c.deg];
+      html+=`<div class="half" data-cell="${m*2+h}"><span class="ch">${ch.name}</span><span class="rn">${ch.rn}</span><span class="roll">${G.die===null?"":"D"+G.die+" "+c.v}</span></div>`; }
+    html+=`</div><div class="ticks" data-m="${m}">${ticks}</div></div>`;
+  }
+  $("grid").innerHTML=html;
+
+  // Poids
+  $("dieInfo").textContent=G.die===null?"Un seul accord":`Dé de grille : D${G.die} pour ${G.T} chances`;
+  const maxW=G.ranges.length;
+  $("weights").innerHTML=G.ranges.slice().reverse().map(r=>{ const ch=chords[r.deg]; const pct=Math.round(r.w/G.T*100);
+    return `<div class="wrow"><span class="name">${ch.name}</span><span class="wbar"><span style="width:${r.w/maxW*100}%"></span></span><span class="meta">${r.lo===r.hi?r.lo:r.lo+"–"+r.hi} · ${pct} %</span></div>`; }).join("");
+}
+
+/* ---------- Texte & MIDI ---------- */
+function gridText(){
+  const M=S.met, G=S.grid;
+  const ordered=S.deg.list.slice().sort((a,b)=>b.score-a.score);
+  let rows=[]; for(let m=0;m<M.mes;m++){ rows.push("| "+chords[G.cells[m*2].deg].name.padEnd(5)+" "+chords[G.cells[m*2+1].deg].name.padEnd(5)+" "); }
+  return ["Musique aléatoire systémique",
+    `Mesure : ${M.n}/8 (${M.groups.join("+")}), ${M.div}, ${M.mes} mesure${M.mes>1?"s":""} en boucle`,
+    `Tonalité : ${keyNameFr()}${S.ton.mode==="min"?" ("+(S.ton.kind==="nat"?"naturel":"harmonique")+")":""}`,
+    `Accords (du plus fréquent) : ${ordered.map(x=>chords[x.deg].name+" "+chords[x.deg].rn).join(", ")}`,
+    "", rows.join("")+"|"].join("\n");
+}
+function voicing(pcs){ const out=pcs.map(pc=>{ let n=57+((pc-57)%12+12)%12; return n; }); return out.sort((a,b)=>a-b); }
+function bassNote(pc){ return 36+((pc-36)%12+12)%12; }
+
+function buildMidi(){
+  const M=S.met, G=S.grid, PPQ=480, CRO=240, SUB=120;
+  const ev=[];
+  const bpmQ=Number($("tempo").value)/2;
+  const tempo=Math.round(60000000/bpmQ);
+  const sf=S.ton.alt==="♯"?S.ton.count:-S.ton.count;
+  ev.push({t:0,o:0,b:[0xFF,0x51,3,(tempo>>16)&255,(tempo>>8)&255,tempo&255]});
+  ev.push({t:0,o:0,b:[0xFF,0x58,4,M.n,3,24,8]});
+  ev.push({t:0,o:0,b:[0xFF,0x59,2,sf&255,S.ton.mode==="min"?1:0]});
+  ev.push({t:0,o:0,b:[0xC0,48]}); ev.push({t:0,o:0,b:[0xC1,33]});
+  const mLen=M.n*CRO, half=M.n*SUB;
+  for(let m=0;m<M.mes;m++){
+    for(let h=0;h<2;h++){ const c=G.cells[m*2+h], ch=chords[c.deg], t0=m*mLen+h*half;
+      voicing(ch.pcs).forEach(n=>{ ev.push({t:t0,o:1,b:[0x90,n,72]}); ev.push({t:t0+half-10,o:0,b:[0x80,n,0]}); }); }
+    let acc=0; M.groups.forEach(g=>{ const t0=m*mLen+acc*CRO; const cell=m*2+(acc*2<M.n?0:1); const n=bassNote(chords[G.cells[cell].deg].pcs[0]);
+      ev.push({t:t0,o:1,b:[0x91,n,90]}); ev.push({t:t0+g*CRO-10,o:0,b:[0x81,n,0]}); acc+=g; });
+  }
+  ev.sort((a,b)=>a.t-b.t||a.o-b.o);
+  const trk=[]; const name=[...new TextEncoder().encode("Grille aleatoire")];
+  trk.push(0,0xFF,0x03,name.length,...name);
+  let last=0;
+  const vlq=v=>{ const bytes=[v&0x7F]; while((v>>=7)>0) bytes.unshift((v&0x7F)|0x80); return bytes; };
+  ev.forEach(e=>{ trk.push(...vlq(e.t-last),...e.b); last=e.t; });
+  trk.push(...vlq(M.mes*mLen-last),0xFF,0x2F,0);
+  const L=trk.length;
+  return new Uint8Array([0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(PPQ>>8)&255,PPQ&255,0x4D,0x54,0x72,0x6B,(L>>>24)&255,(L>>16)&255,(L>>8)&255,L&255,...trk]);
+}
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zip(files){
+  const enc=new TextEncoder(), parts=[], central=[]; let off=0;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+  files.forEach(f=>{ const nm=enc.encode(f.name), data=f.data, crc=crc32(data);
+    const head=[...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),...u16(0),...nm];
+    parts.push(new Uint8Array(head),data);
+    central.push(...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off),...nm);
+    off+=head.length+data.length; });
+  const end=[...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(central.length),...u32(off),...u16(0)];
+  return new Blob([...parts,new Uint8Array(central),new Uint8Array(end)]);
+}
+function slug(){ return (keyNameFr()+"-"+S.met.n+"-8").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-zA-Z0-9]+/g,"-").toLowerCase(); }
+
+/* ---------- Audio ---------- */
+let ctx=null, master=null, playing=false, timer=null, nextTime=0, sub=0, meas=0, queue=[], raf=0;
+const mtof=n=>440*Math.pow(2,(n-69)/12);
+function ensureCtx(){ if(ctx) return; ctx=new (window.AudioContext||window.webkitAudioContext)(); const comp=ctx.createDynamicsCompressor(); master=ctx.createGain(); master.gain.value=.55; master.connect(comp); comp.connect(ctx.destination); }
+function tone(freq,t,dur,{type="triangle",gain=.12,attack=.02,release=.15,cutoff=2400}={}){
+  const o=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter();
+  o.type=type; o.frequency.value=freq; f.type="lowpass"; f.frequency.value=cutoff;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+attack); g.gain.setValueAtTime(gain,t+Math.max(attack,dur-release)); g.gain.linearRampToValueAtTime(0,t+dur);
+  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.02);
+}
+function click(t,level){ const f=[0,900,1250,1700][level], v=[0,.05,.1,.16][level]; tone(f,t,.035,{type:"sine",gain:v,attack:.001,release:.03,cutoff:8000}); }
+function subDur(){ return 60/(Number($("tempo").value)*2); }
+function schedule(s,m,t){
+  const M=S.met, n=M.n, cell=m*2+(s<n?0:1), ch=chords[S.grid.cells[cell].deg], sd=subDur();
+  if(s===0||s===n){ voicing(ch.pcs).forEach(x=>{ tone(mtof(x),t,n*sd,{type:"sawtooth",gain:.035,attack:.04,release:.12,cutoff:1500}); tone(mtof(x),t,n*sd,{type:"triangle",gain:.05,attack:.02,release:.12}); }); }
+  if(s%2===0){ const c=s/2; let acc=0, isStart=false, g=0; for(const gg of M.groups){ if(acc===c){isStart=true; g=gg;} acc+=gg; }
+    if($("optClick").checked) click(t, c===0?3:(isStart?2:1));
+    if(isStart&&$("optBass").checked){ tone(mtof(bassNote(ch.pcs[0])),t,g*2*sd*.95,{type:"triangle",gain:.22,attack:.005,release:.08,cutoff:900}); } }
+  if($("optArp").checked){ const v=voicing(ch.pcs); tone(mtof(v[s%3]+12),t,sd*.9,{type:"square",gain:.025,attack:.003,release:.05,cutoff:2600}); }
+  queue.push({t,cell,s,m});
+}
+function scheduler(){
+  while(nextTime<ctx.currentTime+.12){
+    meas%=S.met.mes; if(sub>=S.met.n*2) sub=0;
+    schedule(sub,meas,nextTime);
+    nextTime+=subDur(); sub++; if(sub>=S.met.n*2){ sub=0; meas=(meas+1)%S.met.mes; }
+  }
+}
+function draw(){
+  if(!playing) return;
+  let cur=null; while(queue.length&&queue[0].t<=ctx.currentTime){ cur=queue.shift(); }
+  if(cur){
+    document.querySelectorAll(".half.on").forEach(e=>e.classList.remove("on"));
+    document.querySelectorAll(".ticks i.now").forEach(e=>e.classList.remove("now"));
+    const h=document.querySelector(`.half[data-cell="${cur.cell}"]`); if(h) h.classList.add("on");
+    const tk=document.querySelector(`.ticks[data-m="${cur.m}"] i[data-t="${cur.s}"]`); if(tk) tk.classList.add("now");
+  }
+  raf=requestAnimationFrame(draw);
+}
+async function togglePlay(){
+  const b=$("play");
+  if(playing){ playing=false; clearInterval(timer); cancelAnimationFrame(raf); queue=[]; b.textContent="▶ Écouter en boucle"; b.setAttribute("aria-pressed","false");
+    document.querySelectorAll(".half.on,.ticks i.now").forEach(e=>e.classList.remove("on","now")); return; }
+  try{ ensureCtx(); await ctx.resume(); }catch(e){ $("status").textContent="Le son n’a pas pu démarrer dans ce navigateur."; return; }
+  playing=true; sub=0; meas=0; nextTime=ctx.currentTime+.08; queue=[];
+  timer=setInterval(scheduler,25); scheduler(); draw();
+  b.textContent="■ Arrêter"; b.setAttribute("aria-pressed","true");
+}
+
+/* ---------- Actions ---------- */
+function reroll(what){
+  if(what==="all"){ rollMet(); rollTon(); rollDeg(); rollGrid(); }
+  else if(what==="met"){ rollMet(); rollGrid(); }
+  else if(what==="ton"){ rollTon(); }
+  else if(what==="deg"){ rollDeg(); rollGrid(); }
+  else if(what==="grid"){ rollGrid(); }
+  queue=[]; render();
+  $("status").textContent="";
+}
+$("rollAll").addEventListener("click",()=>reroll("all"));
+document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>reroll(b.dataset.reroll)));
+$("play").addEventListener("click",togglePlay);
+$("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").value; });
+$("copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(gridText()); $("status").textContent="Grille copiée dans le presse-papiers."; }catch(e){ $("status").textContent="La copie a été refusée par le navigateur."; } });
+
+let downloads=null;
+if(window.claude&&window.claude.use){ window.claude.use("downloads").then(ns=>{ downloads=ns; if(ns) $("dl").hidden=false; }).catch(()=>{}); }
+$("dl").addEventListener("click",async()=>{
+  if(!downloads) return;
+  const enc=new TextEncoder(), base=slug();
+  const blob=zip([{name:base+".mid",data:buildMidi()},{name:base+".txt",data:enc.encode(gridText())}]);
+  try{ await downloads.save({filename:base+".zip",data:blob}); $("status").textContent="Fichier enregistré : le .mid est dans le .zip."; }
+  catch(e){ $("status").textContent= e&&e.code==="declined"?"Téléchargement annulé.":"Le téléchargement n’est pas disponible ici."; }
+});
+
+reroll("all");
+})();
+</script>
+</body>
+</html>
