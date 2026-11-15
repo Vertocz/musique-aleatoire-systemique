@@ -700,7 +700,7 @@ function reroll(what){
   queue=[]; render();
   $("status").textContent="";
 }
-$("rollAll").addEventListener("click",()=>reroll("all"));
+$("rollAll").addEventListener("click",()=>{ applyTheme(drawDesign()); reroll("all"); });
 document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>reroll(b.dataset.reroll)));
 $("play").addEventListener("click",togglePlay);
 $("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").value; });
@@ -737,7 +737,7 @@ function designHtml(){
     {k:"d6",v:P.text,h:H[1],m:"D6 : police du texte",d:"une police par face sur 6 : "+T.body[0]},
     {k:"d6",v:P.shape,h:H[2],m:"D6 : forme des blocs",d:`du plus anguleux (1) au plus arrondi (6) : ${T.rad} px`}
   ];
-  return `<p>Le design est tiré au sort à chaque arrivée sur le site, avec ses propres dés, comme une tonalité qu’on ne jouerait pas. La place et la taille des blocs ne changent jamais.</p>
+  return `<p>Le design est tiré au sort à chaque arrivée sur le site et à chaque « Tout relancer », avec ses propres dés, comme une tonalité qu’on ne jouerait pas. La place et la taille des blocs ne changent jamais.</p>
   <ul>${rows.map(x=>`<li>${dieSvg(x.k,x.v,x.h,56)}<span class="t"><b>${x.m}</b><span class="d">→ ${x.d}</span></span></li>`).join("")}</ul>
   <div class="swatches" aria-label="Palette de cette page">${[["Fond","--bg"],["Couleur 1","--a1"],["Couleur 2","--a2"],["Couleur 3","--a3"],["Encre","--ink"]].map(([n,k])=>`<span title="${n}" style="background:${T.v[k]}"></span>`).join("")}</div>`;
 }
