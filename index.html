@@ -39,7 +39,8 @@
         <li><span>3</span><span><strong>Degrés.</strong> D6 degrés, un D8 pour chacun, un D20 pour leur fréquence.</span></li>
         <li><span>4</span><span><strong>Grille.</strong> Un accord par demi-mesure, tiré selon les poids. En boucle.</span></li>
         <li><span>5</span><span><strong>Mélodie.</strong> Ambitus, rythme et hauteurs aux dés, appuyés sur les accords.</span></li>
-        <li><span>6</span><span><strong>Batterie.</strong> Elle soutient la métrique, les temps forts et les changements d’accords.</span></li>
+        <li><span>6</span><span><strong>Basse.</strong> Elle s’appuie sur les accords et répond à la mélodie, avec ses propres dés.</span></li>
+        <li><span>7</span><span><strong>Batterie.</strong> Elle soutient la métrique, les temps forts et les changements d’accords.</span></li>
       </ol>
     </section>
   </div>
@@ -66,7 +67,8 @@
       <div class="section"><div class="section-head"><h3><span>III</span>Degrés</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="deg" type="button" aria-label="Règle des degrés">?</button><button class="btn btn-sm" data-reroll="deg" type="button">Relancer</button></span></div><ul class="rolls" id="log-deg"></ul></div>
       <div class="section"><div class="section-head"><h3><span>IV</span>Grille</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="grid" type="button" aria-label="Règle de la grille">?</button><button class="btn btn-sm" data-reroll="grid" type="button">Relancer</button></span></div><ul class="rolls" id="log-grid"></ul></div>
       <div class="section"><div class="section-head"><h3><span>V</span>Mélodie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="mel" type="button" aria-label="Règle de la mélodie">?</button><button class="btn btn-sm" data-reroll="mel" type="button">Relancer</button></span></div><ul class="rolls" id="log-mel"></ul></div>
-      <div class="section"><div class="section-head"><h3><span>VI</span>Batterie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="drums" type="button" aria-label="Règle de la batterie">?</button><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></span></div><ul class="rolls" id="log-drums"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>VI</span>Basse</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="bass" type="button" aria-label="Règle de la basse">?</button><button class="btn btn-sm" data-reroll="bass" type="button">Relancer</button></span></div><ul class="rolls" id="log-bass"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>VII</span>Batterie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="drums" type="button" aria-label="Règle de la batterie">?</button><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></span></div><ul class="rolls" id="log-drums"></ul></div>
     </section>
 
     <section class="card grid-card" id="grille" aria-labelledby="grille-titre">
@@ -75,12 +77,13 @@
         <span class="tempo"><label for="tempo">Tempo (noire)</label><input id="tempo" type="range" min="40" max="240" step="1" value="100"><output id="tempoOut" for="tempo">100</output></span>
         <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
         <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
+        <label for="optChords"><input type="checkbox" id="optChords" checked> Accords</label>
         <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
         <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
         <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
       </div>
       <div class="grid" id="grid"></div>
-      <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
+      <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--bass)"></i>Basse</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
       <h3 class="sub-h">Poids des accords <span class="status" id="dieInfo"></span></h3>
       <div class="weights" id="weights"></div>
     </section>
