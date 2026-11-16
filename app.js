@@ -107,22 +107,27 @@ const R2=[[4],[2,2],[2,1,1],[1,1,2],[1,1,1,1],[-2,2]];
 const R3=[[6],[4,2],[2,4],[2,2,2],[3,1,2],[-2,2,2]];
 const STEP={1:-2,2:-1,3:-1,4:0,5:1,6:1,7:2};
 const mod7=i=>((i%7)+7)%7;
-function rollMel(){
+/* Dés mémorisés : pour rejouer les mêmes valeurs sur une nouvelle grille (réharmonisation) */
+const DICE={mel:{},bass:{},drums:{}};
+function kd(part,key,n,keep){ const st=DICE[part]; if(keep&&st[key]!==undefined&&st[key]<=n) return st[key]; const v=d(n); st[key]=v; return v; }
+function rollMel(keep){
+  if(!keep) DICE.mel={};
   const log=[], M=S.met, n=M.n;
-  const a=d(6), span=a<=2?5:a<=4?7:9;
+  const a=kd("mel","amb",6,keep), span=a<=2?5:a<=4?7:9;
+  if(keep) log.push({die:"—",v:"",txt:"mêmes dés qu’avant, recalés sur les nouveaux accords"});
   log.push({die:"D6",v:a,txt:`ambitus <strong>${span===5?"sixte":span===7?"octave":"dixième"}</strong>`});
   const lo=-Math.floor(span/2), hi=lo+span;
   const nearest=(set,cur,excl)=>{ let best=null; for(let i=lo;i<=hi;i++){ if(!set.includes(mod7(i))||(excl&&i===cur)) continue; if(best===null||Math.abs(i-cur)<Math.abs(best-cur)||(Math.abs(i-cur)===Math.abs(best-cur)&&Math.abs(i)<Math.abs(best))) best=i; } return best===null?cur:best; };
   const notes=[]; let cur=0;
   for(let m=0;m<M.mes;m++){
     const rr=[], pr=[]; let pos=0; const evs=[];
-    M.groups.forEach(g=>{ const r=d(6); rr.push(r); (g===2?R2:R3)[r-1].forEach(x=>{ evs.push({start:pos,dur:Math.abs(x),rest:x<0}); pos+=Math.abs(x); }); });
+    M.groups.forEach((g,gi)=>{ const r=kd("mel",`r${m}:${gi}`,6,keep); rr.push(r); (g===2?R2:R3)[r-1].forEach(x=>{ evs.push({start:pos,dur:Math.abs(x),rest:x<0}); pos+=Math.abs(x); }); });
     const started=[false,false];
     evs.forEach(ev=>{
       if(ev.rest) return;
       const half=ev.start<n?0:1, deg=S.grid.cells[m*2+half].deg, tones=[deg,(deg+2)%7,(deg+4)%7];
-      if(!started[half]){ started[half]=true; const r=d(6); cur=nearest([tones[r<=2?0:r<=4?1:2]],cur,false); pr.push(`[${r}]`); }
-      else { const r=d(8); if(r===8){ cur=nearest(tones,cur,true); } else { let nx=cur+STEP[r]; if(nx>hi||nx<lo) nx=cur-STEP[r]; cur=nx; } pr.push(String(r)); }
+      if(!started[half]){ started[half]=true; const r=kd("mel",`p${m}:${ev.start}`,6,keep); cur=nearest([tones[r<=2?0:r<=4?1:2]],cur,false); pr.push(`[${r}]`); }
+      else { const r=kd("mel",`p${m}:${ev.start}`,8,keep); if(r===8){ cur=nearest(tones,cur,true); } else { let nx=cur+STEP[r]; if(nx>hi||nx<lo) nx=cur-STEP[r]; cur=nx; } pr.push(String(r)); }
       notes.push({m,start:ev.start,dur:ev.dur,idx:cur,half});
     });
     log.push({die:"D6",v:rr.join("·"),txt:`m.${m+1} rythme`});
@@ -133,11 +138,12 @@ function rollMel(){
 }
 
 const GM={kick:36,snare:38,hhc:42,hho:46,ride:51,crash:49};
-function rollDrums(){
+function rollDrums(keep){
+  if(!keep) DICE.drums={};
   const log=[], M=S.met, n=M.n, G=S.grid;
-  const r1=d(6), ride=r1>=5; log.push({die:"D6",v:r1,txt:`cymbale de rythme : <strong>${ride?"ride":"charleston"}</strong>`});
-  const r2=d(6), dens=r2<=2?"croches":r2<=4?"doubles":"groupes"; log.push({die:"D6",v:r2,txt:`densité : <strong>${dens==="croches"?"croches":dens==="doubles"?"doubles croches":"un coup par groupe"}</strong>`});
-  const r3=d(6), fill=r3>=5; log.push({die:"D6",v:r3,txt:fill?"<strong>break</strong> de caisse claire en fin de grille":"pas de break"});
+  const r1=kd("drums","cym",6,keep), ride=r1>=5; log.push({die:"D6",v:r1,txt:`cymbale de rythme : <strong>${ride?"ride":"charleston"}</strong>`});
+  const r2=kd("drums","dens",6,keep), dens=r2<=2?"croches":r2<=4?"doubles":"groupes"; log.push({die:"D6",v:r2,txt:`densité : <strong>${dens==="croches"?"croches":dens==="doubles"?"doubles croches":"un coup par groupe"}</strong>`});
+  const r3=kd("drums","fill",6,keep), fill=r3>=5; log.push({die:"D6",v:r3,txt:fill?"<strong>break</strong> de caisse claire en fin de grille":"pas de break"});
   const hits=[]; const add=(m,st,inst,vel)=>{ if(!hits.some(h=>h.m===m&&h.s===st&&h.inst===inst)) hits.push({m,s:st,inst,vel}); };
   const starts=[]; let acc=0; M.groups.forEach(g=>{ starts.push(acc); acc+=g; });
   for(let m=0;m<M.mes;m++){
@@ -145,29 +151,31 @@ function rollDrums(){
     const fillFrom = (fill&&m===M.mes-1) ? starts[starts.length-1]*2 : Infinity;
     starts.forEach((c,gi)=>{ const st=2*c; if(st>=fillFrom) return;
       if(gi===0){ add(m,st,"kick",110); }
-      else { const r=d(6); rr.push(r); if(r<=2||r===6) add(m,st,"kick",95); if(r>=3) add(m,st,"snare",100); } });
+      else { const r=kd("drums",`g${m}:${gi}`,6,keep); rr.push(r); if(r<=2||r===6) add(m,st,"kick",95); if(r>=3) add(m,st,"snare",100); } });
     if(n<fillFrom) add(m,n,"kick",100);
     [0,1].forEach(h=>{ const cell=m*2+h, st=h?n:0; if(st>=fillFrom) return;
       if(cell===0){ add(m,0,"crash",110); return; }
-      if(G.cells[cell].deg!==G.cells[cell-1].deg){ const r=d(6); extra.push(`${h?"½":"1"}:${r}`); if(r>=5) add(m,st,"crash",100); } });
+      if(G.cells[cell].deg!==G.cells[cell-1].deg){ const r=kd("drums",`c${m}:${h}`,6,keep); extra.push(`${h?"½":"1"}:${r}`); if(r>=5) add(m,st,"crash",100); } });
     const hat=ride?"ride":"hhc";
     for(let st=0;st<2*n&&st<fillFrom;st++){
       const isGroup=st%2===0&&starts.includes(st/2);
       const on = dens==="doubles" || (dens==="croches"&&st%2===0) || (dens==="groupes"&&isGroup);
       if(on) add(m,st,hat,isGroup?95:(st%2?55:75));
     }
-    if(!ride && dens!=="groupes" && 2*n-2<fillFrom){ const r=d(6); extra.push(`ouv:${r}`); if(r===6){ const i=hits.findIndex(h=>h.m===m&&h.s===2*n-2&&h.inst==="hhc"); if(i>=0) hits.splice(i,1); add(m,2*n-2,"hho",85); } }
+    if(!ride && dens!=="groupes" && 2*n-2<fillFrom){ const r=kd("drums",`o${m}`,6,keep); extra.push(`ouv:${r}`); if(r===6){ const i=hits.findIndex(h=>h.m===m&&h.s===2*n-2&&h.inst==="hhc"); if(i>=0) hits.splice(i,1); add(m,2*n-2,"hho",85); } }
     if(fillFrom<Infinity){ for(let st=fillFrom, k=0; st<2*n; st++, k++) add(m,st,"snare",60+Math.min(60,k*8)); add(m,fillFrom,"kick",100); }
     log.push({die:"D6",v:rr.length?rr.join("·"):"—",txt:`m.${m+1} groupes${extra.length?` · crash/ouvert ${extra.join(" ")}`:""}`});
   }
+  if(keep) log.splice(3,0,{die:"—",v:"",txt:"mêmes dés qu’avant, recalés sur les nouveaux accords"});
   S.drums={ride,dens,fill,hits,log};
 }
 
 
 /* ---------- Basse : elle répond à la mélodie ---------- */
-function rollBass(){
+function rollBass(keep){
+  if(!keep) DICE.bass={};
   const log=[], M=S.met, n=M.n, G=S.grid, total=G.cells.length;
-  const r0=d(6), style=r0<=2?"tenue":r0<=4?"groupes":"reponse";
+  const r0=kd("bass","style",6,keep), style=r0<=2?"tenue":r0<=4?"groupes":"reponse";
   log.push({die:"D6",v:r0,txt:`style : <strong>${style==="tenue"?"notes tenues":style==="groupes"?"une note par groupe de croches":"réponse à la mélodie"}</strong>`});
   const lo=-4, hi=7;
   const nearest=(set,cur)=>{ let best=null; for(let i=lo;i<=hi;i++){ if(!set.includes(mod7(i))) continue; if(best===null||Math.abs(i-cur)<Math.abs(best-cur)) best=i; } return best===null?cur:best; };
@@ -182,12 +190,12 @@ function rollBass(){
       const tones=[deg,(deg+2)%7,(deg+4)%7], a=h*n, b=a+n;
       let at=[a];
       if(style==="groupes") starts.forEach(s=>{ if(s>a&&s<b) at.push(s); });
-      if(style==="reponse") for(let s=a+1;s<b;s++){ if(s%2) continue; if(melAttack.has(m+":"+s)) continue; const r=d(6); places.push(r); if(r>=4) at.push(s); }
+      if(style==="reponse") for(let s=a+1;s<b;s++){ if(s%2) continue; if(melAttack.has(m+":"+s)) continue; const r=kd("bass",`q${m}:${s}`,6,keep); places.push(r); if(r>=4) at.push(s); }
       at=[...new Set(at)].sort((x,y)=>x-y);
       let prevS=a;
       at.forEach((s,i)=>{
-        if(i===0){ const r=d(6); cur=nearest([tones[r<=4?0:r===5?1:2]],cur); pr.push(`[${r}]`); }
-        else { const r=d(6); pr.push(String(r));
+        if(i===0){ const r=kd("bass",`p${m}:${s}`,6,keep); cur=nearest([tones[r<=4?0:r===5?1:2]],cur); pr.push(`[${r}]`); }
+        else { const r=kd("bass",`p${m}:${s}`,6,keep); pr.push(String(r));
           if(r===1) cur=nearest([tones[0]],cur);
           else if(r===2) cur=nearest([tones[2]],cur);
           else if(r===3){ cur = cur+7<=hi ? cur+7 : cur-7>=lo ? cur-7 : cur; }
@@ -202,6 +210,7 @@ function rollBass(){
     log.push({die:"D6",v:pr.join(" "),txt:`m.${m+1} hauteurs`});
     if(places.length) log.push({die:"D6",v:places.join(""),txt:`m.${m+1} places (4–6 : la basse répond)`});
   }
+  if(keep) log.splice(1,0,{die:"—",v:"",txt:"mêmes dés qu’avant, recalés sur les nouveaux accords"});
   S.bass={style,notes,log};
 }
 
@@ -529,9 +538,8 @@ function reroll(what){
   if(what==="all"){ rollMet(); rollTon(); rollDeg(); rollGrid(); rollMel(); rollBass(); rollDrums(); }
   else if(what==="met"){ rollMet(); rollGrid(); rollMel(); rollBass(); rollDrums(); }
   else if(what==="ton"){ rollTon(); }
-  else if(what==="deg"){ rollDeg(); rollGrid(); rollMel(); rollBass(); rollDrums(); }
-  else if(what==="grid"){ rollGrid(); rollMel(); rollBass(); rollDrums(); }
-  else if(what==="mel"){ rollMel(); rollBass(); }
+  else if(what==="deg"||what==="grid"){ const keep=!!($("keepParts")&&$("keepParts").checked); if(what==="deg") rollDeg(); rollGrid(); rollMel(keep); rollBass(keep); rollDrums(keep); }
+  else if(what==="mel"){ const keep=!!($("keepParts")&&$("keepParts").checked); rollMel(false); rollBass(keep); }
   else if(what==="bass"){ rollBass(); }
   else if(what==="drums"){ rollDrums(); }
   queue=[]; render();
@@ -583,9 +591,9 @@ const RULES={
   met:["Métrique",`<ol class="r"><li><strong>Croches par mesure</strong> : 5 + D10, donc de 6 à 15 croches.</li><li><strong>Nombre de mesures</strong> : D6, de 1 à 6. La grille tourne en boucle.</li><li><strong>Division</strong> : D6. De 1 à 3, binaire : les croches sont groupées par 2. De 4 à 6, ternaire : groupées par 3. Un groupe de 3 ou de 2 complète si le compte ne tombe pas juste (7/8 binaire = 2+2+3, 8/8 ternaire = 3+3+2).</li></ol><p>Les groupes donnent les temps forts : la batterie et la mélodie s’y appuient.</p>`],
   ton:["Tonalité",`<ol class="r"><li><strong>D8</strong> : de 1 à 4 bémols, de 5 à 8 dièses.</li><li><strong>D8</strong> : nombre d’altérations. Le 8 donne aucune altération (do majeur ou la mineur).</li><li><strong>D8</strong> : de 1 à 4 mineur, de 5 à 8 majeur.</li><li>En mineur, <strong>pile ou face</strong> : mineur naturel ou harmonique (V majeur, VII diminué).</li></ol><p>Exemple : 5, 2, 6 donne deux dièses en majeur, soit ré majeur.</p>`],
   deg:["Degrés",`<ol class="r"><li><strong>D6</strong> : combien de degrés on utilise.</li><li><strong>D8 par degré</strong> : lequel (I à VII). Le 8 et les doublons sont relancés.</li><li><strong>D20 par degré</strong> : sa fréquence. Plus le score est haut, plus l’accord reviendra. Les égalités sont relancées.</li></ol><p>Exemple en ré majeur : I, II, III et VI donnent D, Em, F♯m et Bm.</p>`],
-  grid:["Grille",`<ol class="r"><li>Les degrés sont classés par leur score au D20. Le dernier reçoit 1 chance, le suivant 2… le premier n chances.</li><li>Le total des chances donne le dé : 3 → D4 (4 relancé), 6 → D6, 10 → D10, 15 → D20 (au-delà de 15 relancé), 21 → D100 (1 à 84 ramené de 1 à 21, 85 à 100 relancé).</li><li>Un lancer par <strong>demi-mesure</strong> choisit l’accord. Une mesure de 7 croches se coupe en 2 × 7 doubles croches.</li></ol><p>Exemple avec 4 degrés : D = 1, F♯m = 2–3, Em = 4–6, Bm = 7–10, sur un D10.</p>`],
+  grid:["Grille",`<p><strong>Garder mélodie, basse et batterie</strong> (case en haut des tirages) : quand les degrés ou la grille sont relancés, la mélodie, la basse et la batterie gardent leurs dés ; quand la mélodie est relancée, la basse garde les siens. Le rythme et le dessin de la mélodie restent les mêmes ; les notes qui dépendent des accords (notes d’appui, sauts vers l’accord, fondamentales, crash) se recalent sur les nouveaux accords. C’est une réharmonisation. Décoche la case pour tout retirer.</p><ol class="r"><li>Les degrés sont classés par leur score au D20. Le dernier reçoit 1 chance, le suivant 2… le premier n chances.</li><li>Le total des chances donne le dé : 3 → D4 (4 relancé), 6 → D6, 10 → D10, 15 → D20 (au-delà de 15 relancé), 21 → D100 (1 à 84 ramené de 1 à 21, 85 à 100 relancé).</li><li>Un lancer par <strong>demi-mesure</strong> choisit l’accord. Une mesure de 7 croches se coupe en 2 × 7 doubles croches.</li></ol><p>Exemple avec 4 degrés : D = 1, F♯m = 2–3, Em = 4–6, Bm = 7–10, sur un D10.</p>`],
   mel:["Mélodie (règles provisoires)",`<ol class="r"><li><strong>Ambitus</strong> : D6. De 1 à 2 une sixte, de 3 à 4 une octave, de 5 à 6 une dixième, autour de la tonique.</li><li><strong>Rythme</strong> : un D6 par groupe de croches. Groupe de 2 : noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche. Groupe de 3 : noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches.</li><li><strong>Note d’appui</strong> : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, au D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche de la précédente.</li><li><strong>Notes suivantes</strong> : D8. 1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche. Hors ambitus, le mouvement s’inverse.</li><li>La dernière note de la grille devient la fondamentale de son accord.</li></ol>`],
-  bass:["Basse",`<p>La basse a son propre système : elle s’appuie sur les accords et répond à la mélodie. Relancer la mélodie relance aussi la basse.</p><ol class="r"><li><strong>Style</strong>, un D6 pour toute la grille : 1–2 notes tenues (une par demi-mesure), 3–4 une note par groupe de croches, 5–6 réponse à la mélodie.</li><li><strong>En réponse</strong> : sur chaque croche où la mélodie ne joue pas de nouvelle note, un D6 ; de 4 à 6, la basse joue. Elle remplit les trous de la mélodie.</li><li><strong>Note d’appui</strong> en début de demi-mesure, D6 : 1–4 fondamentale, 5 tierce (renversement), 6 quinte.</li><li><strong>Notes suivantes</strong>, D6 : 1 fondamentale, 2 quinte, 3 saut d’octave, 4 tierce, 5 note de passage vers l’accord suivant, 6 mouvement contraire à la mélodie (elle descend quand la mélodie monte, et inversement).</li><li>Registre : environ une dixième, deux octaves sous la mélodie. Une note dure jusqu’à la suivante.</li></ol>`],
+  bass:["Basse",`<p>La basse a son propre système : elle s’appuie sur les accords et répond à la mélodie. Quand la mélodie est relancée, la basse garde ses dés (si la case « garder » est cochée) et se recale : elle remplit les nouveaux trous de la mélodie et suit son nouveau dessin.</p><ol class="r"><li><strong>Style</strong>, un D6 pour toute la grille : 1–2 notes tenues (une par demi-mesure), 3–4 une note par groupe de croches, 5–6 réponse à la mélodie.</li><li><strong>En réponse</strong> : sur chaque croche où la mélodie ne joue pas de nouvelle note, un D6 ; de 4 à 6, la basse joue. Elle remplit les trous de la mélodie.</li><li><strong>Note d’appui</strong> en début de demi-mesure, D6 : 1–4 fondamentale, 5 tierce (renversement), 6 quinte.</li><li><strong>Notes suivantes</strong>, D6 : 1 fondamentale, 2 quinte, 3 saut d’octave, 4 tierce, 5 note de passage vers l’accord suivant, 6 mouvement contraire à la mélodie (elle descend quand la mélodie monte, et inversement).</li><li>Registre : environ une dixième, deux octaves sous la mélodie. Une note dure jusqu’à la suivante.</li></ol>`],
   drums:["Batterie",`<ol class="r"><li><strong>Trois dés pour toute la grille</strong> : D6 cymbale de rythme (1–4 charleston, 5–6 ride), D6 densité (1–2 croches, 3–4 doubles croches, 5–6 un coup par groupe), D6 break (5–6 roulement de caisse claire sur le dernier groupe de la grille).</li><li><strong>Grosse caisse</strong> au 1ᵉʳ temps et à chaque demi-mesure.</li><li><strong>Autres groupes de croches</strong> : D6. 1–2 grosse caisse, 3–5 caisse claire, 6 les deux.</li><li><strong>Crash</strong> au début de la grille, puis D6 5–6 quand l’accord change.</li><li><strong>Charleston ouvert</strong> sur la dernière croche de la mesure au D6 6.</li></ol>`]
 };
 document.querySelectorAll("[data-rule]").forEach(b=>b.addEventListener("click",()=>{ const r=RULES[b.dataset.rule]; openModal(r[0],r[1]); }));
