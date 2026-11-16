@@ -547,7 +547,8 @@ function showPending(){
   $("status").textContent=pending.length?"Au prochain tour de la grille : "+pending.map(w=>PEND_LBL[w]).join(", ")+".":"";
 }
 function requestReroll(what){
-  if(!playing){ if(what==="all") applyTheme(drawDesign()); reroll(what); return; }
+  const atEnd=!$("endOfGrid")||$("endOfGrid").checked;
+  if(!playing||!atEnd){ if(what==="all") applyTheme(drawDesign()); reroll(what); return; }
   if(what==="all") pending=["all"]; else if(!pending.includes("all")&&!pending.includes(what)) pending.push(what);
   showPending();
 }
@@ -612,7 +613,7 @@ function tryReroll(what){
   if(box&&box.checked){
     const v=d(6), ok=v===6;
     chanceSound(ok);
-    const msg=ok?"Dé de chance : 6 ! Le changement est accordé.":`Dé de chance : ${v}. Il fallait un 6, rien ne change.`;
+    const msg=ok?"accordé":"refusé";
     $("chanceOut").innerHTML=`<span class="dice">${dieSvg("d6",v,HUES[0],30)}</span><span>${msg}</span>`;
     if(!ok) return;
   }
