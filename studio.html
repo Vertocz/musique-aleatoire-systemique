@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio · Musique aléatoire systémique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Baloo+2:wght@800&family=Bricolage+Grotesque:wght@400;800&family=Bungee&family=Chewy&family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;700&family=Fraunces:wght@400;900&family=Lilita+One&family=Nunito:wght@400;600;800&family=Outfit:wght@400;500;700&family=Righteous&family=Shrikhand&family=Space+Grotesk:wght@400;500;700&family=Unbounded:wght@500;800&family=Work+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body data-page="studio">
+<div class="wrap">
+<header>
+  <a class="brand" href="index.html"><span id="logoDie"></span><span>Musique aléatoire<br>systémique</span></a>
+  <nav aria-label="Navigation principale">
+    <a href="index.html">Jouer en ligne</a>
+    <button class="btn btn-a3" id="openDesign" type="button">D’où vient mon design ?</button>
+  </nav>
+</header>
+<div hidden><span id="decoBig"></span><span id="decoSmall"></span></div>
+<main id="composition">
+  <section class="card" aria-labelledby="studio-titre">
+    <div class="grid-head"><h2 id="studio-titre">Studio : tes instruments</h2><span>MPC, synthés, tout ce qui reçoit du MIDI en USB</span></div>
+      <div class="midi">
+        <div class="midi-head"><h3>Sorties MIDI</h3><button class="btn btn-sm" id="midiOn" type="button">Activer le MIDI</button></div>
+        <p class="status" id="midiStatus" style="margin:0">Envoie chaque partie vers ta MPC ou tes synthés. Ouvre le site dans Chrome ou Edge, branche tes instruments en USB, puis active le MIDI.</p>
+        <div class="midi-rows" id="midiRows" hidden></div>
+        <label for="midiClock" id="midiClockLbl" hidden style="display:inline-flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="midiClock"> Envoyer l’horloge MIDI (tempo, départ et arrêt)</label>
+      </div>
+    <ol class="rules-list">
+      <li>Ouvre cette page dans <strong>Chrome ou Edge</strong> et branche tes instruments en USB.</li>
+      <li>Sur Windows, ferme les logiciels qui utilisent déjà ces ports (logiciel MPC, Live…) : un port MIDI ne s’ouvre que dans un programme à la fois.</li>
+      <li>Pour chaque partie, choisis l’instrument et le canal. Les synthés mono vont bien sur la basse et la mélodie, la MPC sur les accords et la batterie (les notes de batterie suivent la norme GM : 36 grosse caisse, 38 caisse claire, 42 charleston…).</li>
+      <li>Coche l’horloge MIDI pour que la MPC ou les synthés à séquenceur suivent le tempo.</li>
+    </ol>
+  </section>
+
+  <section class="card piece-card" aria-labelledby="piece-titre">
+    <div class="piece-head">
+      <h2 id="piece-titre">La pièce tirée</h2>
+      <div class="player">
+        <button class="btn btn-ink" id="rollAll" type="button">Tout relancer</button>
+        <button class="btn btn-line" id="play" type="button" aria-pressed="false">▶ Écouter en boucle</button>
+      </div>
+    </div>
+    <ul id="pieceRows"></ul>
+  </section>
+
+  <div class="row">
+    <section class="card carnet-card" aria-labelledby="carnet-titre">
+      <h2 id="carnet-titre">Les tirages</h2>
+      <div class="section"><div class="section-head"><h3><span>I</span>Métrique</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="met" type="button" aria-label="Règle de la métrique">?</button><button class="btn btn-sm" data-reroll="met" type="button">Relancer</button></span></div><ul class="rolls" id="log-met"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>II</span>Tonalité</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="ton" type="button" aria-label="Règle de la tonalité">?</button><button class="btn btn-sm" data-reroll="ton" type="button">Relancer</button></span></div><ul class="rolls" id="log-ton"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>III</span>Degrés</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="deg" type="button" aria-label="Règle des degrés">?</button><button class="btn btn-sm" data-reroll="deg" type="button">Relancer</button></span></div><ul class="rolls" id="log-deg"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>IV</span>Grille</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="grid" type="button" aria-label="Règle de la grille">?</button><button class="btn btn-sm" data-reroll="grid" type="button">Relancer</button></span></div><ul class="rolls" id="log-grid"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>V</span>Mélodie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="mel" type="button" aria-label="Règle de la mélodie">?</button><button class="btn btn-sm" data-reroll="mel" type="button">Relancer</button></span></div><ul class="rolls" id="log-mel"></ul></div>
+      <div class="section"><div class="section-head"><h3><span>VI</span>Batterie</h3><span class="tools"><button class="btn btn-sm btn-q" data-rule="drums" type="button" aria-label="Règle de la batterie">?</button><button class="btn btn-sm" data-reroll="drums" type="button">Relancer</button></span></div><ul class="rolls" id="log-drums"></ul></div>
+    </section>
+
+    <section class="card grid-card" id="grille" aria-labelledby="grille-titre">
+      <div class="grid-head"><h2 id="grille-titre">La grille</h2><span id="gridSub"></span></div>
+      <div class="player">
+        <span class="tempo"><label for="tempo">Tempo (noire)</label><input id="tempo" type="range" min="40" max="240" step="1" value="100"><output id="tempoOut" for="tempo">100</output></span>
+        <label for="optDrums"><input type="checkbox" id="optDrums" checked> Batterie</label>
+        <label for="optMel"><input type="checkbox" id="optMel" checked> Mélodie</label>
+        <label for="optBass"><input type="checkbox" id="optBass" checked> Basse</label>
+        <label for="optArp"><input type="checkbox" id="optArp"> Arpège</label>
+        <label for="optClick"><input type="checkbox" id="optClick"> Métronome</label>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="legend" aria-label="Légende"><span><i style="background:var(--deep)"></i>Mélodie</span><span><i style="background:var(--a3)"></i>Cymbale crash</span><span><i style="background:color-mix(in srgb, var(--ink) 45%, transparent)"></i><span id="hatLbl">Charleston</span></span><span><i style="background:var(--deep)"></i>Caisse claire</span><span><i style="background:var(--ink)"></i>Grosse caisse</span></div>
+      <h3 class="sub-h">Poids des accords <span class="status" id="dieInfo"></span></h3>
+      <div class="weights" id="weights"></div>
+    </section>
+  </div>
+
+  <section class="card actions-card" aria-label="Exporter">
+    <button class="btn btn-ink" id="copy" type="button">Copier la grille</button>
+    <button class="btn btn-line" id="dl" type="button">Télécharger MIDI</button>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<footer>
+  <span>Musique aléatoire systémique, d’après le document de 2020.</span>
+  <span id="footKey"></span>
+</footer>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modale-titre">
+    <div class="dialog-head">
+      <h2 id="modale-titre"></h2>
+      <button class="close" id="closeModal" type="button" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="body" id="modalBody"></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
