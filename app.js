@@ -600,8 +600,26 @@ function reroll(what){
   queue=[]; render();
   $("status").textContent="";
 }
-$("rollAll").addEventListener("click",()=>requestReroll("all"));
-document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>requestReroll(b.dataset.reroll)));
+/* Jeu supplémentaire : le dé de chance. Un D6 accompagne chaque relance ; seul un 6 autorise le changement. */
+function chanceSound(ok){
+  try{ ensureCtx(); ctx.resume(); }catch(e){ return; }
+  const t=ctx.currentTime+.02;
+  if(ok) [0,4,7,12].forEach((x,i)=>tone(mtof(72+x),t+i*.07,.18,{type:"triangle",gain:.12,attack:.005,release:.1,cutoff:4000}));
+  else tone(mtof(48),t,.12,{type:"sine",gain:.12,attack:.003,release:.09,cutoff:1200});
+}
+function tryReroll(what){
+  const box=$("chanceMode");
+  if(box&&box.checked){
+    const v=d(6), ok=v===6;
+    chanceSound(ok);
+    const msg=ok?"Dé de chance : 6 ! Le changement est accordé.":`Dé de chance : ${v}. Il fallait un 6, rien ne change.`;
+    $("chanceOut").innerHTML=`<span class="dice">${dieSvg("d6",v,HUES[0],30)}</span><span>${msg}</span>`;
+    if(!ok) return;
+  }
+  requestReroll(what);
+}
+$("rollAll").addEventListener("click",()=>tryReroll("all"));
+document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>tryReroll(b.dataset.reroll)));
 $("play").addEventListener("click",togglePlay);
 $("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").value; });
 $("copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(gridText()); $("status").textContent="Grille copiée dans le presse-papiers."; }catch(e){ $("status").textContent="La copie a été refusée par le navigateur."; } });
@@ -648,6 +666,7 @@ const RULES={
   deg:["Degrés",`<ol class="r"><li><strong>D6</strong> : combien de degrés on utilise.</li><li><strong>D8 par degré</strong> : lequel (I à VII). Le 8 et les doublons sont relancés.</li><li><strong>D20 par degré</strong> : sa fréquence. Plus le score est haut, plus l’accord reviendra. Les égalités sont relancées.</li></ol><p>Exemple en ré majeur : I, II, III et VI donnent D, Em, F♯m et Bm.</p>`],
   grid:["Grille",`<p><strong>Garder mélodie, basse et batterie</strong> (case en haut des tirages) : quand les degrés ou la grille sont relancés, la mélodie, la basse et la batterie gardent leurs dés ; quand la métrique change, la grille, la mélodie, la basse et la batterie gardent aussi leurs dés et se reconstruisent autour de la nouvelle mesure (mêmes accords dans le même ordre, mêmes cellules rythmiques par groupe, mêmes mouvements de notes) ; quand la mélodie est relancée, la basse garde les siens. Le rythme et le dessin de la mélodie restent les mêmes ; les notes qui dépendent des accords (notes d’appui, sauts vers l’accord, fondamentales, crash) se recalent sur les nouveaux accords. C’est une réharmonisation. Décoche la case pour tout retirer.</p><ol class="r"><li>Les degrés sont classés par leur score au D20. Le dernier reçoit 1 chance, le suivant 2… le premier n chances.</li><li>Le total des chances donne le dé : 3 → D4 (4 relancé), 6 → D6, 10 → D10, 15 → D20 (au-delà de 15 relancé), 21 → D100 (1 à 84 ramené de 1 à 21, 85 à 100 relancé).</li><li>Un lancer par <strong>demi-mesure</strong> choisit l’accord. Une mesure de 7 croches se coupe en 2 × 7 doubles croches.</li></ol><p>Exemple avec 4 degrés : D = 1, F♯m = 2–3, Em = 4–6, Bm = 7–10, sur un D10.</p>`],
   mel:["Mélodie (règles provisoires)",`<ol class="r"><li><strong>Ambitus</strong> : D6. De 1 à 2 une sixte, de 3 à 4 une octave, de 5 à 6 une dixième, autour de la tonique.</li><li><strong>Rythme</strong> : un D6 par groupe de croches. Groupe de 2 : noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche. Groupe de 3 : noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches.</li><li><strong>Note d’appui</strong> : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, au D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche de la précédente.</li><li><strong>Notes suivantes</strong> : D8. 1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche. Hors ambitus, le mouvement s’inverse.</li><li>La dernière note de la grille devient la fondamentale de son accord.</li></ol>`],
+  chance:["Dé de chance (jeu supplémentaire)",`<p>Une option de jeu, désactivée par défaut. Quand elle est active, chaque relance est accompagnée d’un <strong>D6 de chance</strong> : seul un <strong>6</strong> autorise le changement, à la fin de la grille. Sur 1 à 5, rien ne change.</p><p>Avec les vrais dés : le visiteur lance le dé de la partie qu’il veut changer avec le dé de chance. Le dé de partie lancé seul ne fait rien.</p><p>Un petit son confirme que le lancer a été compris : une montée sur un 6, une note grave sinon.</p>`],
   bass:["Basse",`<p>La basse a son propre système : elle s’appuie sur les accords et répond à la mélodie. Quand la mélodie est relancée, la basse garde ses dés (si la case « garder » est cochée) et se recale : elle remplit les nouveaux trous de la mélodie et suit son nouveau dessin.</p><ol class="r"><li><strong>Style</strong>, un D6 pour toute la grille : 1–2 notes tenues (une par demi-mesure), 3–4 une note par groupe de croches, 5–6 réponse à la mélodie.</li><li><strong>En réponse</strong> : sur chaque croche où la mélodie ne joue pas de nouvelle note, un D6 ; de 4 à 6, la basse joue. Elle remplit les trous de la mélodie.</li><li><strong>Note d’appui</strong> en début de demi-mesure, D6 : 1–4 fondamentale, 5 tierce (renversement), 6 quinte.</li><li><strong>Notes suivantes</strong>, D6 : 1 fondamentale, 2 quinte, 3 saut d’octave, 4 tierce, 5 note de passage vers l’accord suivant, 6 mouvement contraire à la mélodie (elle descend quand la mélodie monte, et inversement).</li><li>Registre : environ une dixième, deux octaves sous la mélodie. Une note dure jusqu’à la suivante.</li></ol>`],
   drums:["Batterie",`<ol class="r"><li><strong>Trois dés pour toute la grille</strong> : D6 cymbale de rythme (1–4 charleston, 5–6 ride), D6 densité (1–2 croches, 3–4 doubles croches, 5–6 un coup par groupe), D6 break (5–6 roulement de caisse claire sur le dernier groupe de la grille).</li><li><strong>Grosse caisse</strong> au 1ᵉʳ temps et à chaque demi-mesure.</li><li><strong>Autres groupes de croches</strong> : D6. 1–2 grosse caisse, 3–5 caisse claire, 6 les deux.</li><li><strong>Crash</strong> au début de la grille, puis D6 5–6 quand l’accord change.</li><li><strong>Charleston ouvert</strong> sur la dernière croche de la mesure au D6 6.</li></ol>`]
 };
