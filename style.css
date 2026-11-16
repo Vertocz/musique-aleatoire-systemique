@@ -145,6 +145,7 @@ main{display:flex;flex-direction:column;gap:24px}
 .carnet-card .section{padding-top:14px;border-top:2px solid var(--line)}
 .carnet-card .section:first-of-type{border-top:0;padding-top:0}
 .section-head .tools{display:flex;gap:6px}
+.btn.pending{box-shadow:inset 0 0 0 2px var(--deep);background:var(--tint)}
 .btn-q{min-width:34px;justify-content:center;padding:0}
 .actions-card{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;padding:20px 32px}
 /* Modale */

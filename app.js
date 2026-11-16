@@ -504,7 +504,9 @@ let tickWorker=null;
 try{ tickWorker=new Worker(URL.createObjectURL(new Blob(["let i=null;onmessage=e=>{clearInterval(i);if(e.data>0)i=setInterval(()=>postMessage(0),e.data);}"],{type:"text/javascript"}))); }catch(e){ tickWorker=null; }
 function scheduler(){
   while(nextTime<ctx.currentTime+.12){
+    if(bridge){ scheduleBridge(bsub,nextTime); nextTime+=subDur(); bsub++; if(bsub>=bridge.n*2){ bridge=null; bsub=0; sub=0; meas=0; $("status").textContent=""; } continue; }
     meas%=S.met.mes; if(sub>=S.met.n*2) sub=0;
+    if(sub===0&&meas===0&&pending.length){ applyPending(); if(bridge) continue; }
     schedule(sub,meas,nextTime);
     nextTime+=subDur(); sub++; if(sub>=S.met.n*2){ sub=0; meas=(meas+1)%S.met.mes; }
   }
@@ -522,11 +524,11 @@ function draw(){
 }
 async function togglePlay(){
   const b=$("play");
-  if(playing){ playing=false; clearInterval(timer); if(tickWorker) tickWorker.postMessage(0); cancelAnimationFrame(raf); queue=[];
+  if(playing){ playing=false; if(pending.length){ const p=pending; pending=[]; if(p.includes("all")){ applyTheme(drawDesign()); reroll("all"); } else p.forEach(w=>reroll(w)); showPending(); } clearInterval(timer); if(tickWorker) tickWorker.postMessage(0); cancelAnimationFrame(raf); queue=[];
     if(midi){ midiPanic(); if(midiClockOn()) clockOuts().forEach(o=>{ try{ o.send([0xFC]); }catch(e){} }); } b.textContent="▶ Écouter en boucle"; b.setAttribute("aria-pressed","false");
     document.querySelectorAll(".half.on,.ticks i.now").forEach(e=>e.classList.remove("on","now")); return; }
   try{ ensureCtx(); await ctx.resume(); }catch(e){ $("status").textContent="Le son n’a pas pu démarrer dans ce navigateur."; return; }
-  playing=true; sub=0; meas=0; nextTime=ctx.currentTime+.08; queue=[];
+  playing=true; sub=0; meas=0; bridge=null; bsub=0; nextTime=ctx.currentTime+.08; queue=[];
   if(midiClockOn()) clockOuts().forEach(o=>{ try{ o.send([0xFA],toPerf(nextTime)); }catch(e){} });
   if(tickWorker){ tickWorker.onmessage=scheduler; tickWorker.postMessage(25); } else timer=setInterval(scheduler,25);
   scheduler(); draw();
@@ -534,6 +536,56 @@ async function togglePlay(){
 }
 
 /* ---------- Actions ---------- */
+/* Pendant l'écoute, un changement attend la fin de la grille en cours. */
+let pending=[];
+const PEND_LBL={all:"tout",met:"la métrique",ton:"la tonalité",deg:"les degrés",grid:"la grille",mel:"la mélodie",bass:"la basse",drums:"la batterie"};
+function showPending(){
+  document.querySelectorAll("[data-reroll],#rollAll").forEach(b=>b.classList.toggle("pending",pending.includes(b.dataset.reroll||"all")));
+  $("status").textContent=pending.length?"Au prochain tour de la grille : "+pending.map(w=>PEND_LBL[w]).join(", ")+".":"";
+}
+function requestReroll(what){
+  if(!playing){ if(what==="all") applyTheme(drawDesign()); reroll(what); return; }
+  if(what==="all") pending=["all"]; else if(!pending.includes("all")&&!pending.includes(what)) pending.push(what);
+  showPending();
+}
+/* Transition entre deux grilles quand la métrique ou la tonalité change :
+   une mesure (dans l'ancienne métrique) qui prépare puis amène le premier accord de la nouvelle grille. */
+let bridge=null, bsub=0;
+function buildBridge(oldMet){
+  const n=oldMet.n, target=chords[S.grid.cells[0].deg];
+  const prep=chords[3];                       // IV (ou iv) de la nouvelle tonalité : préparation
+  const r=(target.pcs[0]+7)%12;               // dominante de l'accord d'arrivée
+  const dom=[r,(r+4)%12,(r+7)%12,(r+10)%12];  // accord de septième de dominante
+  const near=(pc,base)=>base+((pc-base)%12+12)%12;
+  return {n,groups:oldMet.groups,prep:prep.pcs,dom,
+    mel:[near(prep.pcs[1],64),near(dom[1],64)],   // tierce de chaque accord ; la tierce de la dominante est la sensible
+    name:prep.name+" → "+noteNameFromPc(r)+"7 → "+target.name};
+}
+function noteNameFromPc(pc){ const map=["C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"]; return map[pc]; }
+function scheduleBridge(s,t){
+  const B=bridge, n=B.n, sd=subDur(), half=s<n?0:1, pcs=half?B.dom:B.prep;
+  if((s===0||s===n)&&$("optChords").checked){ const v=voicing(pcs.slice(0,3)).concat(half?[voicing([B.dom[3]])[0]]:[]);
+    if(outFor("chords")) v.forEach(x=>midiNote("chords",x,80,t,n*sd*.97)); else v.forEach(x=>{ tone(mtof(x),t,n*sd,{type:"sawtooth",gain:.035,attack:.04,release:.12,cutoff:1500}); tone(mtof(x),t,n*sd,{type:"triangle",gain:.05,attack:.02,release:.12}); }); }
+  if((s===0||s===n)&&$("optBass").checked){ const bn=bassNote(pcs[0]); if(outFor("bass")) midiNote("bass",bn,100,t,n*sd*.92); else tone(mtof(bn),t,n*sd*.95,{type:"triangle",gain:.24,attack:.005,release:.08,cutoff:900}); }
+  if((s===0||s===n)&&$("optMel").checked){ const mm=B.mel[half]; if(outFor("mel")) midiNote("mel",mm,90,t,n*sd*.92); else tone(mtof(mm),t,n*sd*.95,{type:"triangle",gain:.15,attack:.01,release:.08,cutoff:3200}); }
+  if($("optDrums").checked){
+    const hits=[];
+    if(s===0) hits.push(["kick",110]);
+    if(half===0&&s%2===0) hits.push(["hhc",s===0?95:70]);
+    if(half===1) hits.push(["snare",55+Math.min(65,(s-n)*Math.round(65/Math.max(1,n-1)))]);
+    if(s===n) hits.push(["kick",100]);
+    hits.forEach(([inst,vel])=>{ if(outFor("drums")) midiNote("drums",GM[inst],vel,t,sd*.5); else drum(inst,t,vel); });
+  }
+  if($("optClick").checked&&s%2===0) click(t,s===0?3:1);
+}
+function applyPending(){
+  const p=pending; pending=[];
+  const oldMet=S.met, oldTon=S.ton;
+  if(p.includes("all")){ applyTheme(drawDesign()); reroll("all"); }
+  else p.forEach(w=>reroll(w));
+  if(S.met!==oldMet||S.ton!==oldTon){ bridge=buildBridge(oldMet); bsub=0; showPending(); $("status").textContent="Transition : "+bridge.name; return; }
+  showPending();
+}
 function reroll(what){
   if(what==="all"){ rollMet(); rollTon(); rollDeg(); rollGrid(); rollMel(); rollBass(); rollDrums(); }
   else if(what==="met"){ rollMet(); rollGrid(); rollMel(); rollBass(); rollDrums(); }
@@ -545,8 +597,8 @@ function reroll(what){
   queue=[]; render();
   $("status").textContent="";
 }
-$("rollAll").addEventListener("click",()=>{ applyTheme(drawDesign()); reroll("all"); });
-document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>reroll(b.dataset.reroll)));
+$("rollAll").addEventListener("click",()=>requestReroll("all"));
+document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click",()=>requestReroll(b.dataset.reroll)));
 $("play").addEventListener("click",togglePlay);
 $("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").value; });
 $("copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(gridText()); $("status").textContent="Grille copiée dans le presse-papiers."; }catch(e){ $("status").textContent="La copie a été refusée par le navigateur."; } });
@@ -589,7 +641,7 @@ function designHtml(){
 $("openDesign").addEventListener("click",()=>openModal("D’où vient mon design ?",designHtml()));
 const RULES={
   met:["Métrique",`<ol class="r"><li><strong>Croches par mesure</strong> : 5 + D10, donc de 6 à 15 croches.</li><li><strong>Nombre de mesures</strong> : D6, de 1 à 6. La grille tourne en boucle.</li><li><strong>Division</strong> : D6. De 1 à 3, binaire : les croches sont groupées par 2. De 4 à 6, ternaire : groupées par 3. Un groupe de 3 ou de 2 complète si le compte ne tombe pas juste (7/8 binaire = 2+2+3, 8/8 ternaire = 3+3+2).</li></ol><p>Les groupes donnent les temps forts : la batterie et la mélodie s’y appuient.</p>`],
-  ton:["Tonalité",`<ol class="r"><li><strong>D8</strong> : de 1 à 4 bémols, de 5 à 8 dièses.</li><li><strong>D8</strong> : nombre d’altérations. Le 8 donne aucune altération (do majeur ou la mineur).</li><li><strong>D8</strong> : de 1 à 4 mineur, de 5 à 8 majeur.</li><li>En mineur, <strong>pile ou face</strong> : mineur naturel ou harmonique (V majeur, VII diminué).</li></ol><p>Exemple : 5, 2, 6 donne deux dièses en majeur, soit ré majeur.</p>`],
+  ton:["Tonalité",`<p>Pendant l’écoute, un changement de tonalité ou de métrique attend la fin de la grille, puis une <strong>mesure de transition</strong> l’amène : un accord de préparation (IV de la nouvelle tonalité), puis l’accord de dominante du premier accord de la nouvelle grille, pendant que la batterie fait un roulement. La nouvelle grille arrive comme une résolution.</p><ol class="r"><li><strong>D8</strong> : de 1 à 4 bémols, de 5 à 8 dièses.</li><li><strong>D8</strong> : nombre d’altérations. Le 8 donne aucune altération (do majeur ou la mineur).</li><li><strong>D8</strong> : de 1 à 4 mineur, de 5 à 8 majeur.</li><li>En mineur, <strong>pile ou face</strong> : mineur naturel ou harmonique (V majeur, VII diminué).</li></ol><p>Exemple : 5, 2, 6 donne deux dièses en majeur, soit ré majeur.</p>`],
   deg:["Degrés",`<ol class="r"><li><strong>D6</strong> : combien de degrés on utilise.</li><li><strong>D8 par degré</strong> : lequel (I à VII). Le 8 et les doublons sont relancés.</li><li><strong>D20 par degré</strong> : sa fréquence. Plus le score est haut, plus l’accord reviendra. Les égalités sont relancées.</li></ol><p>Exemple en ré majeur : I, II, III et VI donnent D, Em, F♯m et Bm.</p>`],
   grid:["Grille",`<p><strong>Garder mélodie, basse et batterie</strong> (case en haut des tirages) : quand les degrés ou la grille sont relancés, la mélodie, la basse et la batterie gardent leurs dés ; quand la mélodie est relancée, la basse garde les siens. Le rythme et le dessin de la mélodie restent les mêmes ; les notes qui dépendent des accords (notes d’appui, sauts vers l’accord, fondamentales, crash) se recalent sur les nouveaux accords. C’est une réharmonisation. Décoche la case pour tout retirer.</p><ol class="r"><li>Les degrés sont classés par leur score au D20. Le dernier reçoit 1 chance, le suivant 2… le premier n chances.</li><li>Le total des chances donne le dé : 3 → D4 (4 relancé), 6 → D6, 10 → D10, 15 → D20 (au-delà de 15 relancé), 21 → D100 (1 à 84 ramené de 1 à 21, 85 à 100 relancé).</li><li>Un lancer par <strong>demi-mesure</strong> choisit l’accord. Une mesure de 7 croches se coupe en 2 × 7 doubles croches.</li></ol><p>Exemple avec 4 degrés : D = 1, F♯m = 2–3, Em = 4–6, Bm = 7–10, sur un D10.</p>`],
   mel:["Mélodie (règles provisoires)",`<ol class="r"><li><strong>Ambitus</strong> : D6. De 1 à 2 une sixte, de 3 à 4 une octave, de 5 à 6 une dixième, autour de la tonique.</li><li><strong>Rythme</strong> : un D6 par groupe de croches. Groupe de 2 : noire, 2 croches, croche + 2 doubles, 2 doubles + croche, 4 doubles, demi-soupir + croche. Groupe de 3 : noire pointée, noire + croche, croche + noire, 3 croches, croche pointée + double + croche, demi-soupir + 2 croches.</li><li><strong>Note d’appui</strong> : la 1ʳᵉ note de chaque demi-mesure est une note de l’accord, au D6 (1–2 fondamentale, 3–4 tierce, 5–6 quinte), la plus proche de la précédente.</li><li><strong>Notes suivantes</strong> : D8. 1 tierce en dessous, 2–3 degré en dessous, 4 même note, 5–6 degré au-dessus, 7 tierce au-dessus, 8 saut vers la note de l’accord la plus proche. Hors ambitus, le mouvement s’inverse.</li><li>La dernière note de la grille devient la fondamentale de son accord.</li></ol>`],
