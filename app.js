@@ -445,20 +445,23 @@ function drum(inst,t,vel){
   else if(inst==="crash"){ noise(t,1.4,{hp:3800,gain:.26*v,decay:1.3}); }
 }
 function click(t,level){ const f=[0,900,1250,1700][level], v=[0,.05,.1,.16][level]; tone(f,t,.035,{type:"sine",gain:v,attack:.001,release:.03,cutoff:8000}); }
+let OFFLINE=null;   // pendant l'export audio : {chords,bass,mel,drums,arp}
+const PART_BOX={chords:"optChords",bass:"optBass",mel:"optMel",drums:"optDrums",arp:"optArp",click:"optClick"};
+function partOn(p){ if(OFFLINE) return !!OFFLINE[p]; const el=$(PART_BOX[p]); return !!(el&&el.checked); }
 function subDur(){ return 60/(Number($("tempo").value)*4); }
 function schedule(s,m,t){
   const M=S.met, n=M.n, cell=m*2+(s<n?0:1), ch=chords[S.grid.cells[cell].deg], sd=subDur();
   if(midiClockOn()){ for(let i=0;i<6;i++) clockOuts().forEach(o=>o.send([0xF8],toPerf(t+i*sd/6))); }
-  if((s===0||s===n)&&$("optChords").checked){ if(outFor("chords")) voicing(ch.pcs).forEach(x=>midiNote("chords",x,80,t,n*sd*.97));
+  if((s===0||s===n)&&partOn("chords")){ if(outFor("chords")) voicing(ch.pcs).forEach(x=>midiNote("chords",x,80,t,n*sd*.97));
     else voicing(ch.pcs).forEach(x=>{ tone(mtof(x),t,n*sd,{type:"sawtooth",gain:.035,attack:.04,release:.12,cutoff:1500}); tone(mtof(x),t,n*sd,{type:"triangle",gain:.05,attack:.02,release:.12}); }); }
   if(s%2===0){ const c=s/2; let acc=0, isStart=false, g=0; for(const gg of M.groups){ if(acc===c){isStart=true; g=gg;} acc+=gg; }
-    if($("optClick").checked) click(t, c===0?3:(isStart?2:1));
+    if(partOn("click")) click(t, c===0?3:(isStart?2:1));
   }
-  if($("optBass").checked){ S.bass.notes.forEach(x=>{ if(x.m===m&&x.start===s){ const bn=melMidi(x.idx)-24; if(outFor("bass")) midiNote("bass",bn,100,t,x.dur*sd*.92); else tone(mtof(bn),t,x.dur*sd*.95,{type:"triangle",gain:.24,attack:.005,release:.08,cutoff:900}); } }); }
-  if($("optDrums").checked){ S.drums.hits.forEach(h=>{ if(h.m===m&&h.s===s){ if(outFor("drums")) midiNote("drums",GM[h.inst],h.vel,t,sd*.5); else drum(h.inst,t,h.vel); } }); }
-  if($("optMel").checked){ S.mel.notes.forEach(x=>{ if(x.m===m&&x.start===s){ const mm=melMidi(x.idx); if(outFor("mel")){ midiNote("mel",mm,96,t,x.dur*sd*.92); return; } const f=mtof(mm); tone(f,t,x.dur*sd*.95,{type:"triangle",gain:.16,attack:.008,release:.06,cutoff:3200}); tone(f*2,t,x.dur*sd*.9,{type:"sine",gain:.03,attack:.008,release:.06}); } }); }
-  if($("optArp").checked){ const v=voicing(ch.pcs); tone(mtof(v[s%3]+12),t,sd*.9,{type:"square",gain:.025,attack:.003,release:.05,cutoff:2600}); }
-  queue.push({t,cell,s,m});
+  if(partOn("bass")){ S.bass.notes.forEach(x=>{ if(x.m===m&&x.start===s){ const bn=melMidi(x.idx)-24; if(outFor("bass")) midiNote("bass",bn,100,t,x.dur*sd*.92); else tone(mtof(bn),t,x.dur*sd*.95,{type:"triangle",gain:.24,attack:.005,release:.08,cutoff:900}); } }); }
+  if(partOn("drums")){ S.drums.hits.forEach(h=>{ if(h.m===m&&h.s===s){ if(outFor("drums")) midiNote("drums",GM[h.inst],h.vel,t,sd*.5); else drum(h.inst,t,h.vel); } }); }
+  if(partOn("mel")){ S.mel.notes.forEach(x=>{ if(x.m===m&&x.start===s){ const mm=melMidi(x.idx); if(outFor("mel")){ midiNote("mel",mm,96,t,x.dur*sd*.92); return; } const f=mtof(mm); tone(f,t,x.dur*sd*.95,{type:"triangle",gain:.16,attack:.008,release:.06,cutoff:3200}); tone(f*2,t,x.dur*sd*.9,{type:"sine",gain:.03,attack:.008,release:.06}); } }); }
+  if(partOn("arp")){ const v=voicing(ch.pcs); tone(mtof(v[s%3]+12),t,sd*.9,{type:"square",gain:.025,attack:.003,release:.05,cutoff:2600}); }
+  if(!OFFLINE) queue.push({t,cell,s,m});
 }
 /* ---------- Sortie MIDI (page Studio) ---------- */
 const HAS_MIDI=!!document.getElementById("midiOn");
@@ -468,14 +471,14 @@ try{ route=JSON.parse(localStorage.getItem("mas-midi")||"{}")||{}; }catch(e){ ro
 PARTS.forEach(p=>{ if(!route[p.k]) route[p.k]={out:"",ch:p.ch,oct:p.oct}; });
 const saveRoute=()=>{ try{ localStorage.setItem("mas-midi",JSON.stringify(route)); }catch(e){} };
 const toPerf=t=>performance.now()+(t-ctx.currentTime)*1000;
-function outFor(k){ const r=route[k]; if(!midi||!r||!r.out) return null; return midi.outputs.get(r.out)||null; }
+function outFor(k){ if(OFFLINE) return null; const r=route[k]; if(!midi||!r||!r.out) return null; return midi.outputs.get(r.out)||null; }
 function midiNote(k,note,vel,t,dur){
   const o=outFor(k); if(!o) return; const r=route[k], c=(r.ch-1)&15;
   let nn=note+(k==="drums"?0:12*r.oct); nn=Math.max(0,Math.min(127,nn));
   try{ o.send([0x90|c,nn,vel],toPerf(t)); o.send([0x80|c,nn,0],toPerf(t+dur)); }catch(e){}
 }
 function usedOuts(){ const set=new Map(); PARTS.forEach(p=>{ const o=outFor(p.k); if(o) set.set(o.id,o); }); return [...set.values()]; }
-const midiClockOn=()=>HAS_MIDI&&midi&&$("midiClock").checked;
+const midiClockOn=()=>!OFFLINE&&HAS_MIDI&&midi&&$("midiClock").checked;
 const clockOuts=()=>usedOuts();
 function midiPanic(){
   usedOuts().forEach(o=>{ try{ if(o.clear) o.clear(); }catch(e){} });
@@ -568,11 +571,11 @@ function buildBridge(oldMet){
 function noteNameFromPc(pc){ const map=["C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"]; return map[pc]; }
 function scheduleBridge(s,t){
   const B=bridge, n=B.n, sd=subDur(), half=s<n?0:1, pcs=half?B.dom:B.prep;
-  if((s===0||s===n)&&$("optChords").checked){ const v=voicing(pcs.slice(0,3)).concat(half?[voicing([B.dom[3]])[0]]:[]);
+  if((s===0||s===n)&&partOn("chords")){ const v=voicing(pcs.slice(0,3)).concat(half?[voicing([B.dom[3]])[0]]:[]);
     if(outFor("chords")) v.forEach(x=>midiNote("chords",x,80,t,n*sd*.97)); else v.forEach(x=>{ tone(mtof(x),t,n*sd,{type:"sawtooth",gain:.035,attack:.04,release:.12,cutoff:1500}); tone(mtof(x),t,n*sd,{type:"triangle",gain:.05,attack:.02,release:.12}); }); }
-  if((s===0||s===n)&&$("optBass").checked){ const bn=bassNote(pcs[0]); if(outFor("bass")) midiNote("bass",bn,100,t,n*sd*.92); else tone(mtof(bn),t,n*sd*.95,{type:"triangle",gain:.24,attack:.005,release:.08,cutoff:900}); }
-  if((s===0||s===n)&&$("optMel").checked){ const mm=B.mel[half]; if(outFor("mel")) midiNote("mel",mm,90,t,n*sd*.92); else tone(mtof(mm),t,n*sd*.95,{type:"triangle",gain:.15,attack:.01,release:.08,cutoff:3200}); }
-  if($("optDrums").checked){
+  if((s===0||s===n)&&partOn("bass")){ const bn=bassNote(pcs[0]); if(outFor("bass")) midiNote("bass",bn,100,t,n*sd*.92); else tone(mtof(bn),t,n*sd*.95,{type:"triangle",gain:.24,attack:.005,release:.08,cutoff:900}); }
+  if((s===0||s===n)&&partOn("mel")){ const mm=B.mel[half]; if(outFor("mel")) midiNote("mel",mm,90,t,n*sd*.92); else tone(mtof(mm),t,n*sd*.95,{type:"triangle",gain:.15,attack:.01,release:.08,cutoff:3200}); }
+  if(partOn("drums")){
     const hits=[];
     if(s===0) hits.push(["kick",110]);
     if(half===0&&s%2===0) hits.push(["hhc",s===0?95:70]);
@@ -580,7 +583,7 @@ function scheduleBridge(s,t){
     if(s===n) hits.push(["kick",100]);
     hits.forEach(([inst,vel])=>{ if(outFor("drums")) midiNote("drums",GM[inst],vel,t,sd*.5); else drum(inst,t,vel); });
   }
-  if($("optClick").checked&&s%2===0) click(t,s===0?3:1);
+  if(partOn("click")&&s%2===0) click(t,s===0?3:1);
 }
 function applyPending(){
   const p=pending; pending=[];
@@ -624,6 +627,79 @@ document.querySelectorAll("[data-reroll]").forEach(b=>b.addEventListener("click"
 $("play").addEventListener("click",togglePlay);
 $("tempo").addEventListener("input",()=>{ $("tempoOut").textContent=$("tempo").value; });
 $("copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(gridText()); $("status").textContent="Grille copiée dans le presse-papiers."; }catch(e){ $("status").textContent="La copie a été refusée par le navigateur."; } });
+
+/* ---------- Export audio (MP3) ---------- */
+function loadScript(src){ return new Promise((ok,ko)=>{ const e=document.createElement("script"); e.src=src; e.onload=ok; e.onerror=ko; document.head.appendChild(e); }); }
+async function ensureLame(){
+  if(window.lamejs) return;
+  try{ await loadScript("https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"); }
+  catch(e){ await loadScript("https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"); }
+}
+const SR=44100;
+function exportSeconds(loops){ return loops*S.met.mes*S.met.n*2*subDur(); }
+async function renderAudio(loops,parts,progress){
+  const sd=subDur(), total=loops*S.met.mes*S.met.n*2, dur=total*sd+2.5;
+  const off=new OfflineAudioContext(1,Math.ceil(dur*SR),SR);
+  const saved={ctx,master,noiseBuf};
+  ctx=off; noiseBuf=null; OFFLINE=parts;
+  const comp=off.createDynamicsCompressor(); master=off.createGain(); master.gain.value=.55; master.connect(comp); comp.connect(off.destination);
+  try{
+    let t=.05;
+    for(let l=0;l<loops;l++) for(let m=0;m<S.met.mes;m++) for(let s=0;s<S.met.n*2;s++){ schedule(s,m,t); t+=sd; }
+  } finally { ctx=saved.ctx; master=saved.master; noiseBuf=saved.noiseBuf; OFFLINE=null; }
+  progress("Calcul du son…");
+  return await off.startRendering();
+}
+async function encodeMp3(buffer,progress){
+  await ensureLame();
+  const data=buffer.getChannelData(0), enc=new lamejs.Mp3Encoder(1,SR,192), out=[], block=1152;
+  let peak=0; for(let i=0;i<data.length;i++){ const a=Math.abs(data[i]); if(a>peak) peak=a; }
+  const gain=peak>0?Math.min(4,.95/peak):1;
+  const pcm=new Int16Array(block);
+  for(let i=0;i<data.length;i+=block){
+    const n=Math.min(block,data.length-i);
+    for(let j=0;j<n;j++){ const v=Math.max(-1,Math.min(1,data[i+j]*gain)); pcm[j]=v<0?v*32768:v*32767; }
+    const mp3=enc.encodeBuffer(n===block?pcm:pcm.subarray(0,n)); if(mp3.length) out.push(new Uint8Array(mp3));
+    if((i/block)%400===0){ progress(`Encodage MP3 : ${Math.round(i/data.length*100)} %`); await new Promise(r=>setTimeout(r,0)); }
+  }
+  const end=enc.flush(); if(end.length) out.push(new Uint8Array(end));
+  return new Blob(out,{type:"audio/mpeg"});
+}
+function fmtDur(sec){ const m=Math.floor(sec/60), s=Math.round(sec%60); return m?`${m} min ${String(s).padStart(2,"0")} s`:`${s} s`; }
+function openExport(){
+  const PARTS_X=[["chords","Accords"],["bass","Basse"],["mel","Mélodie"],["drums","Batterie"],["arp","Arpège"]];
+  const html=`<div class="export">
+    <label class="exp-row" for="expLoops"><span>Nombre de tours</span><input type="number" id="expLoops" min="1" max="32" value="4"></label>
+    <p class="status" id="expDur" style="margin:0"></p>
+    <div class="switches">${PARTS_X.map(([k,l])=>`<label class="sw" for="exp-${k}"><input type="checkbox" role="switch" id="exp-${k}" ${partOn(k)?"checked":""}><span>${l}</span></label>`).join("")}</div>
+    <div class="player"><button class="btn btn-ink" id="expGo" type="button">Créer le MP3</button><p class="status" id="expStatus" style="margin:0" aria-live="polite"></p></div>
+  </div>`;
+  openModal("Exporter en MP3",html);
+  const upd=()=>{ const L=Math.max(1,Math.min(32,Number($("expLoops").value)||1)); const sec=exportSeconds(L); $("expDur").textContent=`Durée : ${fmtDur(sec)}`+(sec>600?" · limité à 10 min":""); };
+  $("expLoops").addEventListener("input",upd); upd();
+  $("expGo").addEventListener("click",async()=>{
+    const btn=$("expGo"), st=t=>{ const e=$("expStatus"); if(e) e.textContent=t; };
+    let L=Math.max(1,Math.min(32,Number($("expLoops").value)||1));
+    while(L>1&&exportSeconds(L)>600) L--;
+    const parts={}; PARTS_X.forEach(([k])=>parts[k]=$("exp-"+k).checked);
+    if(!Object.values(parts).some(Boolean)){ st("Choisis au moins un instrument."); return; }
+    btn.disabled=true; st("Préparation…");
+    try{
+      const buf=await renderAudio(L,parts,st);
+      const blob=await encodeMp3(buf,st);
+      const base=slug()+"-"+L+"-tours";
+      if(!inClaude){
+        const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=base+".mp3"; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),4000); st("MP3 téléchargé.");
+      } else if(downloads){
+        const z=zip([{name:base+".mp3",data:new Uint8Array(await blob.arrayBuffer())}]);
+        await downloads.save({filename:base+".zip",data:z}); st("MP3 enregistré (dans un .zip).");
+      } else st("Le téléchargement n’est pas disponible ici : ouvre le site en ligne.");
+    }catch(e){ st(e&&e.code==="declined"?"Téléchargement annulé.":"L’export a échoué : "+(e&&e.message||e)); }
+    btn.disabled=false;
+  });
+}
+$("mp3").addEventListener("click",openExport);
 
 let downloads=null;
 const inClaude=!!(window.claude&&window.claude.use);

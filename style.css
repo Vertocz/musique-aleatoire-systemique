@@ -158,6 +158,9 @@ main{display:flex;flex-direction:column;gap:24px}
 @media (prefers-reduced-motion: reduce){.sw input,.sw input::after{transition:none}}
 .chance{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px}
 .chance-out{display:flex;gap:8px;align-items:center;color:var(--muted);min-height:30px}
+.export{display:flex;flex-direction:column;gap:14px}
+.exp-row{display:flex;align-items:center;gap:12px;font-weight:600}
+.exp-row input{width:80px;font:inherit;padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .btn-q{min-width:34px;justify-content:center;padding:0}
 .actions-card{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;padding:20px 32px}
 /* Modale */
